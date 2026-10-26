@@ -160,6 +160,17 @@ footer a { color: var(--ink-2); }
     <div class="chart tall"><canvas id="cmpChart" aria-label="Player comparison"></canvas></div>
   </section>
 
+  <section class="card" style="margin-bottom:12px" id="priceCard">
+    <div class="head">
+      <div><h2>Player price by gameweek</h2><p class="desc">Starts with the most-owned players. Search to add anyone else (up to 8)</p></div>
+      <div class="adder">
+        <input type="search" id="priceInput" list="playerList" placeholder="Search for a player…" aria-label="Add a player to the price chart">
+      </div>
+    </div>
+    <div class="chips" id="priceChips"></div>
+    <div class="chart tall"><canvas id="priceChart" aria-label="Player price by gameweek"></canvas></div>
+  </section>
+
   <div class="grid2">
     <section class="card">
       <div class="head">
@@ -211,7 +222,7 @@ footer a { color: var(--ink-2); }
   const sum = (a) => a.reduce((x, y) => x + y, 0);
   const SLOTS = 8;
 
-  const state = { pos: "", team: "", q: "", sort: "total", dir: -1, limit: 25, mode: "weekly", gw: null, compare: [] };
+  const state = { pos: "", team: "", q: "", sort: "total", dir: -1, limit: 25, mode: "weekly", gw: null, compare: [], price: [] };
   let D, teams, byId, charts = {};
 
   // ---- theme toggle (stored per viewer, page works without it) ----
@@ -247,6 +258,9 @@ footer a { color: var(--ink-2); }
     const latest = D.gws[D.gws.length - 1];
     state.gw = latest;
     state.compare = D.players.slice(0, 5).map((p, i) => ({ id: p.id, slot: i }));
+    const hasPrices = D.players.some((p) => p.prices);
+    $("#priceCard").hidden = !hasPrices;
+    if (hasPrices) state.price = D.players.slice().sort((a, b) => b.sel - a.sel).slice(0, 5).map((p, i) => ({ id: p.id, slot: i }));
 
     const meta = D.gw_meta[D.gw_meta.length - 1];
     $("#subtitle").textContent = `Season ${D.season} · Gameweeks 1–${latest}${meta.finished ? "" : " (gameweek " + latest + " in progress)"}`;
@@ -271,13 +285,15 @@ footer a { color: var(--ink-2); }
       renderCompare();
     });
     $("#playerList").innerHTML = D.players.map((p) => `<option value="${esc(p.name)} (${esc(teams[p.team].short)})">`).join("");
-    $("#addInput").onchange = (e) => {
-      const v = e.target.value.toLowerCase();
-      const p = D.players.find((x) => `${x.name} (${teams[x.team].short})`.toLowerCase() === v)
-        || D.players.find((x) => x.search.includes(v));
-      if (p) addCompare(p.id);
+    const onPick = (add) => (e) => {
+      const v = e.target.value.trim().toLowerCase();
+      const p = v && (D.players.find((x) => `${x.name} (${teams[x.team].short})`.toLowerCase() === v)
+        || D.players.find((x) => x.search.includes(v)));
+      if (p) add(p.id);
       e.target.value = "";
     };
+    $("#addInput").onchange = onPick(addCompare);
+    $("#priceInput").onchange = onPick((id) => { addTo(state.price, id); renderPrice(); });
     renderAll();
   }
 
@@ -285,12 +301,27 @@ footer a { color: var(--ink-2); }
     return D.players.filter((p) => (!state.pos || p.pos === state.pos) && (!state.team || p.team === +state.team));
   }
 
+  // Adds a player to a picked list, giving them the first free colour slot so
+  // existing players keep their colour.
+  function addTo(list, id) {
+    if (list.some((c) => c.id === id)) return;
+    if (list.length >= SLOTS) list.shift();
+    const used = new Set(list.map((c) => c.slot));
+    list.push({ id, slot: [...Array(SLOTS).keys()].find((s) => !used.has(s)) });
+  }
+
+  function renderChips(el, list, rerender, note = () => "") {
+    el.innerHTML = list.map((c) => {
+      const p = byId[c.id];
+      return `<span class="chip"><i style="background:var(--s${c.slot + 1})"></i>${esc(p.name)} <span class="tag">${esc(teams[p.team].short)}</span>${note(p)}<button type="button" data-rm="${c.id}" aria-label="Remove ${esc(p.name)}">×</button></span>`;
+    }).join("") || `<span class="tag">Add a player to start comparing.</span>`;
+    el.querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => {
+      list.splice(list.findIndex((c) => c.id === +b.dataset.rm), 1); rerender();
+    });
+  }
+
   function addCompare(id) {
-    if (state.compare.some((c) => c.id === id)) return;
-    if (state.compare.length >= SLOTS) state.compare.shift();
-    const used = new Set(state.compare.map((c) => c.slot));
-    const slot = [...Array(SLOTS).keys()].find((s) => !used.has(s));
-    state.compare.push({ id, slot });
+    addTo(state.compare, id);
     renderCompare();
     $("#cmpChart").scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -325,7 +356,7 @@ footer a { color: var(--ink-2); }
     pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: css("--surface"), ...extra,
   });
 
-  function renderAll() { renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPos(); renderHeat(); renderTable(); }
+  function renderAll() { renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
 
   function renderTiles() {
     const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];
@@ -379,13 +410,7 @@ footer a { color: var(--ink-2); }
   }
 
   function renderCompare() {
-    $("#chips").innerHTML = state.compare.map((c) => {
-      const p = byId[c.id];
-      return `<span class="chip"><i style="background:var(--s${c.slot + 1})"></i>${esc(p.name)} <span class="tag">${esc(teams[p.team].short)}</span><button type="button" data-rm="${c.id}" aria-label="Remove ${esc(p.name)}">×</button></span>`;
-    }).join("") || `<span class="tag">Add a player to start comparing.</span>`;
-    $("#chips").querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => {
-      state.compare = state.compare.filter((c) => c.id !== +b.dataset.rm); renderCompare();
-    });
+    renderChips($("#chips"), state.compare, renderCompare);
     const cum = state.mode === "cumulative";
     draw("cmp", $("#cmpChart"), {
       type: "line",
@@ -400,6 +425,33 @@ footer a { color: var(--ink-2); }
       },
       options: base({
         plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, itemSort: (a, b) => b.parsed.y - a.parsed.y } },
+      }),
+    });
+  }
+
+  function renderPrice() {
+    if ($("#priceCard").hidden) return;
+    const change = (p) => {
+      const known = p.prices.filter((v) => v != null);
+      const d = known.length ? +(known[known.length - 1] - known[0]).toFixed(1) : 0;
+      if (!d) return ` <span class="tag">±£0.0m</span>`;
+      return ` <span class="tag" style="color:${d > 0 ? "var(--up)" : "var(--down)"}">${d > 0 ? "▲" : "▼"} £${Math.abs(d).toFixed(1)}m</span>`;
+    };
+    renderChips($("#priceChips"), state.price, renderPrice, change);
+    draw("price", $("#priceChart"), {
+      type: "line",
+      data: {
+        labels: D.gws.map((g) => "GW" + g),
+        datasets: state.price.map((c) => {
+          const p = byId[c.id];
+          return line(p.name, p.prices, css(`--s${c.slot + 1}`), { stepped: "middle", pointRadius: D.gws.length > 20 ? 0 : 3, pointBorderColor: css("--surface"), pointBorderWidth: 2 });
+        }),
+      },
+      options: base({
+        plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, itemSort: (a, b) => b.parsed.y - a.parsed.y,
+          callbacks: { label: (c) => ` ${c.dataset.label}: £${c.parsed.y.toFixed(1)}m` } } },
+        scales: { ...base().scales, y: { ...base().scales.y, beginAtZero: false, grace: "5%",
+          ticks: { color: css("--muted"), callback: (v) => `£${(+v).toFixed(1)}m` } } },
       }),
     });
   }

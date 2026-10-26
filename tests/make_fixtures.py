@@ -67,6 +67,15 @@ def main() -> None:
         (d / "index.html").write_text(json.dumps({"elements": live}))
 
     for el in elements:
+        cost, history = el["now_cost"] - 3, []
+        for gw in range(1, PLAYED + 1):
+            cost += rnd.choice([-1, 0, 0, 0, 1, 1])
+            if rnd.random() < 0.85:
+                history.append({"round": gw, "value": cost, "kickoff_time": f"2026-08-{gw + 10:02d}T15:00:00Z"})
+        el["now_cost"] = cost
+        d = OUT / "element-summary" / str(el["id"])
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "index.html").write_text(json.dumps({"history": history}))
         del el["_skill"]
     bootstrap = {
         "events": events,

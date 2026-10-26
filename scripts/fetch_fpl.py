@@ -4,6 +4,8 @@
 Uses only the public FPL API and the Python standard library:
   bootstrap-static/   players, teams, positions and gameweek metadata
   event/{gw}/live/    every player's stats for one gameweek
+  element-summary/{id}/  a player's match history, used once per player to
+                         backfill their price at each gameweek
 
 Raw gameweek stats are cached per season under data/<season>/gw/ so old
 gameweeks are only downloaded once. The latest few gameweeks are always
@@ -12,6 +14,7 @@ re-fetched because bonus points and corrections land after the final whistle.
 Outputs:
   data/<season>/gw/gwNN.json           compact per-player stats for one gameweek
   data/<season>/points_by_gameweek.csv player x gameweek points table
+  data/<season>/prices.json            each player's price (in £0.1m) per gameweek
   docs/data/fpl.json                   everything the dashboard needs
 """
 
@@ -24,6 +27,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -121,7 +125,55 @@ def load_gameweeks(season_dir: Path, events: list[dict]) -> dict[int, dict]:
     return gameweeks
 
 
-def build(bootstrap: dict, gameweeks: dict[int, dict]) -> dict:
+def load_prices(season_dir: Path, bootstrap: dict, gws: list[int]) -> dict[str, dict[str, int]]:
+    """Price per player per gameweek, as {player_id: {gw: now_cost}}.
+
+    A player seen for the first time is backfilled from element-summary (the
+    value they had in each match). After that, every run records the current
+    price against the latest gameweek, so the weekly snapshot builds up.
+    """
+    path = season_dir / "prices.json"
+    prices = json.loads(path.read_text()) if path.exists() else {}
+    missing = [el["id"] for el in bootstrap["elements"] if str(el["id"]) not in prices]
+
+    def history(pid: int) -> tuple[str, dict[str, int] | None]:
+        try:
+            rows = get_json(f"element-summary/{pid}/").get("history", [])
+        except RuntimeError as exc:
+            print(f"  skipping price history for {pid} this run: {exc}", file=sys.stderr)
+            return str(pid), None
+        by_gw = {}
+        for row in sorted(rows, key=lambda r: r.get("kickoff_time") or ""):
+            by_gw[str(row["round"])] = row["value"]
+        return str(pid), by_gw
+
+    if missing:
+        print(f"Backfilling price history for {len(missing)} players")
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            for pid, by_gw in pool.map(history, missing):
+                if by_gw is not None:
+                    prices[pid] = by_gw
+
+    latest = str(gws[-1])
+    for el in bootstrap["elements"]:
+        if str(el["id"]) in prices:
+            prices[str(el["id"])][latest] = el["now_cost"]
+
+    path.write_text(json.dumps(prices, separators=(",", ":"), sort_keys=True) + "\n")
+    return prices
+
+
+def price_series(by_gw: dict[str, int], gws: list[int]) -> list[float | None]:
+    """Prices aligned to gws in £m, carrying the last known price over blank weeks."""
+    out, last = [], None
+    for gw in gws:
+        if str(gw) in by_gw:
+            last = by_gw[str(gw)] / 10
+        out.append(last)
+    return out
+
+
+def build(bootstrap: dict, gameweeks: dict[int, dict], prices: dict[str, dict[str, int]]) -> dict:
     events = bootstrap["events"]
     gws = sorted(gameweeks)
     teams = {t["id"]: t for t in bootstrap["teams"]}
@@ -152,6 +204,7 @@ def build(bootstrap: dict, gameweeks: dict[int, dict]) -> dict:
                 "total": sum(pts),
                 "pts": pts,
                 "min": mins,
+                "prices": price_series(prices.get(pid, {}), gws),
                 "g": int(season_sum("goals_scored")),
                 "a": int(season_sum("assists")),
                 "cs": int(season_sum("clean_sheets")),
@@ -198,7 +251,8 @@ def main() -> int:
         print("No gameweeks played yet this season; nothing to do.")
         return 0
 
-    data = build(bootstrap, gameweeks)
+    prices = load_prices(season_dir, bootstrap, sorted(gameweeks))
+    data = build(bootstrap, gameweeks, prices)
     write_csv(season_dir / "points_by_gameweek.csv", data)
     SITE_DATA.parent.mkdir(parents=True, exist_ok=True)
     SITE_DATA.write_text(json.dumps(data, separators=(",", ":")) + "\n")
