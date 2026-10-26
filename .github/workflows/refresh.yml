@@ -23,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
@@ -33,6 +35,10 @@ jobs:
 
       - name: Commit new data
         run: |
+          # Another run may have pushed since checkout. Move onto the latest main
+          # (keeping this run's freshly fetched files) so the push never conflicts.
+          git fetch origin main
+          git reset --mixed origin/main
           git add data docs/data
           if git diff --cached --quiet; then
             echo "No data changes"
