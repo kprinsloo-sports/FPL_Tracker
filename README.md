@@ -31,6 +31,10 @@ The workflow runs every **Tuesday at 06:00 UTC**, once Monday night games are do
 It caches finished gameweeks and always re-pulls the latest two, so late bonus changes and corrections are picked up.
 You can also run it any time from **Actions → Refresh FPL data → Run workflow**.
 
+### Notifications
+
+Every scheduled or manual refresh posts a comment on the **Weekly refresh log** issue (labelled `refresh-log`) with the latest gameweek's top scorers and a link to the dashboard, and @-mentions the repo owner, so GitHub sends an email and app notification. If a refresh fails, it posts a warning with a link to the run log instead. The dashboard header also shows when the data was last updated.
+
 ## One-time setup
 
 1. **Settings → Pages → Build and deployment → Source: GitHub Actions.**

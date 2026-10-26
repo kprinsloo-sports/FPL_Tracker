@@ -13,6 +13,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: refresh
@@ -62,3 +63,50 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Posts each scheduled or manual refresh to the "Weekly refresh log" issue,
+  # so GitHub sends an email / app notification. Code pushes stay quiet.
+  notify:
+    needs: [refresh, deploy]
+    if: always() && github.event_name != 'push'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Find or create the refresh log issue
+        id: issue
+        run: |
+          gh label create refresh-log --color 2a78d6 --description "Weekly data refresh notifications" 2>/dev/null || true
+          num=$(gh issue list --label refresh-log --state open --limit 1 --json number --jq '.[0].number')
+          if [ -z "$num" ]; then
+            url=$(gh issue create --label refresh-log --assignee "${{ github.repository_owner }}" \
+              --title "Weekly refresh log" \
+              --body "Each weekly FPL data refresh posts a comment here. Subscribe to this issue (or keep watching the repo) to get notified. Dashboard: $PAGES_URL")
+            num=${url##*/}
+          fi
+          echo "number=$num" >> "$GITHUB_OUTPUT"
+
+      - name: Post success
+        if: needs.refresh.result == 'success' && needs.deploy.result == 'success'
+        run: |
+          {
+            echo "@${{ github.repository_owner }} FPL data refreshed $(date -u '+%a %d %b %Y, %H:%M UTC')"
+            echo
+            python scripts/refresh_summary.py
+            echo
+            echo "[Open the dashboard]($PAGES_URL)"
+          } > body.md
+          gh issue comment "${{ steps.issue.outputs.number }}" --body-file body.md
+
+      - name: Post failure
+        if: needs.refresh.result != 'success' || needs.deploy.result != 'success'
+        run: |
+          gh issue comment "${{ steps.issue.outputs.number }}" --body \
+            "@${{ github.repository_owner }} :warning: The FPL refresh failed on $(date -u '+%a %d %b %Y'), so the dashboard was not updated. [See the run log]($RUN_URL)."
