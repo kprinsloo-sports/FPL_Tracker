@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FPL Weekly Tracker</title>
+<meta name="description" content="Fantasy Premier League points for every player, gameweek by gameweek.">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --wash: rgba(11,11,11,0.04);
+  --accent: #2a78d6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --seq-0: #f0efec; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec;
+  --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
+  --up: #006300; --down: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05);
+    --accent: #3987e5;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --seq-0: #262624; --seq-1: #0d366b; --seq-2: #104281; --seq-3: #184f95;
+    --seq-4: #1c5cab; --seq-5: #2a78d6; --seq-6: #5598e7; --seq-7: #9ec5f4;
+    --up: #0ca30c; --down: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05);
+  --accent: #3987e5;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --seq-0: #262624; --seq-1: #0d366b; --seq-2: #104281; --seq-3: #184f95;
+  --seq-4: #1c5cab; --seq-5: #2a78d6; --seq-6: #5598e7; --seq-7: #9ec5f4;
+  --up: #0ca30c; --down: #e66767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+header { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+h1 { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 2px; }
+.sub { color: var(--ink-2); margin: 4px 0 0; }
+.meta { color: var(--muted); font-size: 13px; }
+button.theme { background: none; border: 1px solid var(--border); color: var(--ink-2); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.filters label { color: var(--ink-2); font-size: 13px; }
+select, input[type=search] {
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; min-width: 0;
+}
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; background: var(--surface); color: var(--ink-2); border: 0; padding: 6px 10px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed=true] { background: var(--wash); color: var(--ink); font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.tile .k { color: var(--ink-2); font-size: 13px; }
+.tile .v { font-size: 28px; font-weight: 650; margin-top: 4px; letter-spacing: -0.01em; }
+.tile .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 12px; margin-bottom: 12px; }
+.card { min-width: 0; }
+.card .head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.card .desc { color: var(--muted); font-size: 13px; margin: 0; }
+.chart { position: relative; height: 300px; }
+.chart.tall { height: 340px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 4px 3px 10px; font-size: 13px; }
+.chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.chip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; }
+.adder { display: flex; gap: 6px; flex: 1 1 220px; max-width: 320px; }
+.adder input { flex: 1; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; color: var(--ink-2); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+th.sort { cursor: pointer; user-select: none; }
+th.sort[aria-sort]::after { content: " ▾"; color: var(--muted); }
+th.sort[aria-sort=ascending]::after { content: " ▴"; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr.row { cursor: pointer; }
+tbody tr.row:hover { background: var(--wash); }
+.pname { font-weight: 600; }
+.tag { color: var(--muted); font-size: 12px; }
+.more { margin-top: 10px; font: inherit; font-size: 13px; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.heat td.cell { padding: 0; min-width: 34px; height: 26px; text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; border: 2px solid var(--surface); border-radius: 4px; }
+.heat th { font-size: 12px; text-align: center; }
+.heat td.team { font-weight: 600; padding-right: 10px; }
+.legend-seq { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.legend-seq span.sw { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
+#tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+footer a { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>FPL Weekly Tracker</h1>
+      <p class="sub" id="subtitle">Loading the latest gameweek data…</p>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span class="meta" id="updated"></span>
+      <button class="theme" id="themeBtn" type="button">Theme</button>
+    </div>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid2">
+    <section class="card">
+      <div class="head">
+        <div><h2>Manager scores by gameweek</h2><p class="desc">Average and highest FPL team score each week</p></div>
+      </div>
+      <div class="chart"><canvas id="mgrChart" aria-label="Manager scores by gameweek"></canvas></div>
+    </section>
+    <section class="card">
+      <div class="head">
+        <div><h2>Top 10 players in a gameweek</h2><p class="desc">Respects the position and team filters below</p></div>
+        <select id="gwPick" aria-label="Gameweek"></select>
+      </div>
+      <div class="chart"><canvas id="topChart" aria-label="Top players in the gameweek"></canvas></div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-bottom:12px">
+    <div class="head">
+      <div><h2>Compare players week by week</h2><p class="desc">Click any player in the table to add them (up to 8)</p></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <div class="adder">
+          <input type="search" id="addInput" list="playerList" placeholder="Add a player…" aria-label="Add a player">
+          <datalist id="playerList"></datalist>
+        </div>
+        <div class="seg" role="group" aria-label="Line mode">
+          <button type="button" data-mode="weekly" aria-pressed="true">Weekly</button>
+          <button type="button" data-mode="cumulative" aria-pressed="false">Cumulative</button>
+        </div>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="chart tall"><canvas id="cmpChart" aria-label="Player comparison"></canvas></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <div class="head">
+        <div><h2>Average points by position</h2><p class="desc">Mean points per player who played that week</p></div>
+      </div>
+      <div class="chart"><canvas id="posChart" aria-label="Average points by position"></canvas></div>
+    </section>
+    <section class="card">
+      <div class="head">
+        <div><h2>Team points by gameweek</h2><p class="desc">Total FPL points earned by each club's players</p></div>
+        <div class="legend-seq" id="heatLegend"></div>
+      </div>
+      <div class="scroll"><table class="heat" id="heat"></table></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="head">
+      <div><h2>All players</h2><p class="desc">Sort by any column. Form is the average of the last 3 gameweeks.</p></div>
+    </div>
+    <div class="filters">
+      <input type="search" id="search" placeholder="Search players…" aria-label="Search players">
+      <div class="seg" role="group" aria-label="Position" id="posSeg">
+        <button type="button" data-pos="" aria-pressed="true">All</button>
+        <button type="button" data-pos="GKP" aria-pressed="false">GKP</button>
+        <button type="button" data-pos="DEF" aria-pressed="false">DEF</button>
+        <button type="button" data-pos="MID" aria-pressed="false">MID</button>
+        <button type="button" data-pos="FWD" aria-pressed="false">FWD</button>
+      </div>
+      <select id="teamPick" aria-label="Team"><option value="">All teams</option></select>
+    </div>
+    <div class="scroll"><table id="table"></table></div>
+    <button class="more" id="moreBtn" type="button">Show more</button>
+  </section>
+
+  <footer>
+    Data from the public <a href="https://fantasy.premierleague.com/">Fantasy Premier League</a> API, refreshed weekly by GitHub Actions.
+    Raw data: <a id="csvLink" href="#">points by gameweek (CSV)</a>.
+  </footer>
+</div>
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const SLOTS = 8;
+
+  const state = { pos: "", team: "", q: "", sort: "total", dir: -1, limit: 25, mode: "weekly", gw: null, compare: [] };
+  let D, teams, byId, charts = {};
+
+  // ---- theme toggle (stored per viewer, page works without it) ----
+  const themeBtn = $("#themeBtn");
+  const storedTheme = (() => { try { return localStorage.getItem("fpl-theme"); } catch { return null; } })();
+  if (storedTheme) document.documentElement.dataset.theme = storedTheme;
+  const isDark = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
+  const syncThemeLabel = () => { themeBtn.textContent = isDark() ? "Light mode" : "Dark mode"; };
+  syncThemeLabel();
+  themeBtn.onclick = () => {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("fpl-theme", next); } catch {}
+    syncThemeLabel(); if (D) renderAll();
+  };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { syncThemeLabel(); if (D) renderAll(); });
+
+  fetch("data/fpl.json", { cache: "no-cache" })
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(init)
+    .catch(() => { $("#subtitle").textContent = "No data yet. Run the “Refresh FPL data” workflow to pull the first gameweeks."; });
+
+  function init(data) {
+    D = data;
+    teams = Object.fromEntries(D.teams.map((t) => [t.id, t]));
+    byId = Object.fromEntries(D.players.map((p) => [p.id, p]));
+    D.players.forEach((p) => {
+      const last = p.pts.slice(-3);
+      p.form = last.length ? sum(last) / last.length : 0;
+      p.last = p.pts[p.pts.length - 1] || 0;
+      p.search = (p.name + " " + p.full + " " + teams[p.team].name).toLowerCase();
+    });
+    const latest = D.gws[D.gws.length - 1];
+    state.gw = latest;
+    state.compare = D.players.slice(0, 5).map((p, i) => ({ id: p.id, slot: i }));
+
+    const meta = D.gw_meta[D.gw_meta.length - 1];
+    $("#subtitle").textContent = `Season ${D.season} · Gameweeks 1–${latest}${meta.finished ? "" : " (gameweek " + latest + " in progress)"}`;
+    $("#updated").textContent = "Updated " + new Date(D.updated).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    $("#csvLink").href = `https://github.com/${location.hostname.split(".")[0]}/${location.pathname.split("/")[1] || ""}/blob/main/data/${D.season}/points_by_gameweek.csv`;
+
+    $("#gwPick").innerHTML = D.gws.slice().reverse().map((g) => `<option value="${g}">Gameweek ${g}</option>`).join("");
+    $("#gwPick").onchange = (e) => { state.gw = +e.target.value; renderTop(); };
+    $("#teamPick").innerHTML += D.teams.slice().sort((a, b) => a.name.localeCompare(b.name)).map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+    $("#teamPick").onchange = (e) => { state.team = e.target.value; state.limit = 25; renderTop(); renderTable(); };
+    $("#posSeg").onclick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      state.pos = b.dataset.pos; state.limit = 25;
+      $("#posSeg").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      renderTop(); renderTable();
+    };
+    $("#search").oninput = (e) => { state.q = e.target.value.trim().toLowerCase(); state.limit = 25; renderTable(); };
+    $("#moreBtn").onclick = () => { state.limit += 100; renderTable(); };
+    document.querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => {
+      state.mode = b.dataset.mode;
+      document.querySelectorAll("[data-mode]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      renderCompare();
+    });
+    $("#playerList").innerHTML = D.players.map((p) => `<option value="${esc(p.name)} (${esc(teams[p.team].short)})">`).join("");
+    $("#addInput").onchange = (e) => {
+      const v = e.target.value.toLowerCase();
+      const p = D.players.find((x) => `${x.name} (${teams[x.team].short})`.toLowerCase() === v)
+        || D.players.find((x) => x.search.includes(v));
+      if (p) addCompare(p.id);
+      e.target.value = "";
+    };
+    renderAll();
+  }
+
+  function filtered() {
+    return D.players.filter((p) => (!state.pos || p.pos === state.pos) && (!state.team || p.team === +state.team));
+  }
+
+  function addCompare(id) {
+    if (state.compare.some((c) => c.id === id)) return;
+    if (state.compare.length >= SLOTS) state.compare.shift();
+    const used = new Set(state.compare.map((c) => c.slot));
+    const slot = [...Array(SLOTS).keys()].find((s) => !used.has(s));
+    state.compare.push({ id, slot });
+    renderCompare();
+    $("#cmpChart").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // ---- Chart.js shared look ----
+  function base(extra = {}) {
+    Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+    Chart.defaults.color = css("--muted");
+    return {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top", align: "start", labels: { color: css("--ink-2"), boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: "circle" } },
+        tooltip: {
+          backgroundColor: css("--surface"), titleColor: css("--ink"), bodyColor: css("--ink-2"),
+          borderColor: css("--axis"), borderWidth: 1, padding: 10, usePointStyle: true, boxPadding: 4,
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, border: { color: css("--axis") }, ticks: { color: css("--muted") } },
+        y: { beginAtZero: true, grid: { color: css("--grid") }, border: { display: false }, ticks: { color: css("--muted"), precision: 0 } },
+      },
+      ...extra,
+    };
+  }
+  function draw(key, canvas, config) {
+    if (charts[key]) charts[key].destroy();
+    charts[key] = new Chart(canvas, config);
+  }
+  const line = (label, data, color, extra = {}) => ({
+    label, data, borderColor: color, backgroundColor: color, borderWidth: 2, cubicInterpolationMode: "monotone",
+    pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: css("--surface"), ...extra,
+  });
+
+  function renderAll() { renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPos(); renderHeat(); renderTable(); }
+
+  function renderTiles() {
+    const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];
+    const best = D.players.reduce((a, b) => (b.pts[gi] > a.pts[gi] ? b : a));
+    const leader = D.players[0];
+    const delta = prev ? meta.avg - prev.avg : null;
+    const tiles = [
+      ["Latest gameweek", `GW ${gw}`, meta.finished ? "Finished" : "In progress"],
+      ["Average manager score", meta.avg || "–", delta == null ? `Highest ${meta.high || "–"}` :
+        `<span style="color:${delta >= 0 ? "var(--up)" : "var(--down)"}">${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)}</span> vs GW ${gw - 1} · highest ${meta.high || "–"}`],
+      ["Player of the week", `${best.pts[gi]} pts`, `${esc(best.name)} · ${esc(teams[best.team].short)} ${best.pos}`],
+      ["Season top scorer", `${leader.total} pts`, `${esc(leader.name)} · ${esc(teams[leader.team].short)} ${leader.pos}`],
+    ];
+    $("#tiles").innerHTML = tiles.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
+  }
+
+  function renderMgr() {
+    const labels = D.gws.map((g) => "GW" + g);
+    draw("mgr", $("#mgrChart"), {
+      type: "line",
+      data: { labels, datasets: [
+        line("Highest", D.gw_meta.map((m) => m.high || null), css("--s2")),
+        line("Average", D.gw_meta.map((m) => m.avg || null), css("--s1")),
+      ] },
+      options: base(),
+    });
+  }
+
+  function renderTop() {
+    const gi = D.gws.indexOf(state.gw);
+    const top = filtered().slice().sort((a, b) => b.pts[gi] - a.pts[gi]).slice(0, 10);
+    draw("top", $("#topChart"), {
+      type: "bar",
+      data: {
+        labels: top.map((p) => `${p.name} (${teams[p.team].short})`),
+        datasets: [{ label: `GW${state.gw} points`, data: top.map((p) => p.pts[gi]), backgroundColor: css("--s1"),
+          borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: 0.75, categoryPercentage: 0.9 }],
+      },
+      options: base({
+        indexAxis: "y",
+        interaction: { mode: "nearest", axis: "y", intersect: false },
+        onClick: (_, els) => { if (els.length) addCompare(top[els[0].index].id); },
+        plugins: { ...base().plugins, legend: { display: false },
+          tooltip: { ...base().plugins.tooltip, callbacks: { afterLabel: (c) => { const p = top[c.dataIndex]; return `${p.min[gi]} mins · ${p.pos} · £${p.price}m`; } } } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: css("--grid") }, border: { display: false }, ticks: { color: css("--muted"), precision: 0 } },
+          y: { grid: { display: false }, border: { color: css("--axis") }, ticks: { color: css("--ink-2") } },
+        },
+      }),
+    });
+  }
+
+  function renderCompare() {
+    $("#chips").innerHTML = state.compare.map((c) => {
+      const p = byId[c.id];
+      return `<span class="chip"><i style="background:var(--s${c.slot + 1})"></i>${esc(p.name)} <span class="tag">${esc(teams[p.team].short)}</span><button type="button" data-rm="${c.id}" aria-label="Remove ${esc(p.name)}">×</button></span>`;
+    }).join("") || `<span class="tag">Add a player to start comparing.</span>`;
+    $("#chips").querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => {
+      state.compare = state.compare.filter((c) => c.id !== +b.dataset.rm); renderCompare();
+    });
+    const cum = state.mode === "cumulative";
+    draw("cmp", $("#cmpChart"), {
+      type: "line",
+      data: {
+        labels: D.gws.map((g) => "GW" + g),
+        datasets: state.compare.map((c) => {
+          const p = byId[c.id];
+          let run = 0;
+          const data = cum ? p.pts.map((v) => (run += v)) : p.pts;
+          return line(p.name, data, css(`--s${c.slot + 1}`), { pointRadius: D.gws.length > 20 ? 0 : 3, pointBorderColor: css("--surface"), pointBorderWidth: 2 });
+        }),
+      },
+      options: base({
+        plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, itemSort: (a, b) => b.parsed.y - a.parsed.y } },
+      }),
+    });
+  }
+
+  function renderPos() {
+    const order = ["GKP", "DEF", "MID", "FWD"];
+    const datasets = order.map((pos, i) => {
+      const group = D.players.filter((p) => p.pos === pos);
+      const data = D.gws.map((_, gi) => {
+        const played = group.filter((p) => p.min[gi] > 0);
+        return played.length ? +(sum(played.map((p) => p.pts[gi])) / played.length).toFixed(2) : null;
+      });
+      return line(pos, data, css(`--s${i + 1}`));
+    });
+    draw("pos", $("#posChart"), {
+      type: "line", data: { labels: D.gws.map((g) => "GW" + g), datasets },
+      options: base({ plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, callbacks: { label: (c) => ` ${c.dataset.label}: ${c.parsed.y?.toFixed(1)} pts` } } } }),
+    });
+  }
+
+  function renderHeat() {
+    const rows = D.teams.map((t) => {
+      const ps = D.players.filter((p) => p.team === t.id);
+      return { t, v: D.gws.map((_, gi) => sum(ps.map((p) => p.pts[gi]))) };
+    }).sort((a, b) => sum(b.v) - sum(a.v));
+    const all = rows.flatMap((r) => r.v), lo = Math.min(...all), hi = Math.max(...all);
+    const step = (v) => (hi === lo ? 4 : Math.min(7, Math.floor(((v - lo) / (hi - lo)) * 8)));
+    const inkFor = (s) => (isDark() ? (s >= 6 ? "#0b0b0b" : "var(--ink)") : (s >= 4 ? "#ffffff" : "var(--ink)"));
+    $("#heat").innerHTML =
+      `<thead><tr><th></th>${D.gws.map((g) => `<th>${g}</th>`).join("")}<th class="num">Total</th></tr></thead><tbody>` +
+      rows.map(({ t, v }) => `<tr><td class="team">${esc(t.short)}</td>${v.map((x, gi) => {
+        const s = step(x);
+        return `<td class="cell" data-tip="${esc(t.name)} · GW${D.gws[gi]}: <b>${x} pts</b>" style="background:var(--seq-${s});color:${inkFor(s)}">${x}</td>`;
+      }).join("")}<td class="num">${sum(v)}</td></tr>`).join("") + "</tbody>";
+    $("#heatLegend").innerHTML = `${lo}` + [0, 1, 2, 3, 4, 5, 6, 7].map((s) => `<span class="sw" style="background:var(--seq-${s})"></span>`).join("") + `${hi}`;
+  }
+
+  // shared HTML tooltip for heatmap cells and sparklines
+  const tip = $("#tip");
+  document.addEventListener("mousemove", (e) => {
+    const el = e.target.closest("[data-tip]");
+    if (!el) { tip.style.display = "none"; return; }
+    tip.innerHTML = el.dataset.tip; tip.style.display = "block";
+    const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + "px"; tip.style.top = (e.clientY + 14) + "px";
+  });
+
+  function spark(p) {
+    const w = 120, h = 26, n = p.pts.length, max = Math.max(4, ...p.pts);
+    const bw = w / n;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">` + p.pts.map((v, i) => {
+      const bh = Math.max(1, (v / max) * (h - 2));
+      return `<rect x="${(i * bw + 0.5).toFixed(1)}" y="${(h - bh).toFixed(1)}" width="${Math.max(1, bw - 1.5).toFixed(1)}" height="${bh.toFixed(1)}" rx="1" fill="var(--s1)" opacity="${i === n - 1 ? 1 : 0.55}"><title>GW${D.gws[i]}: ${v}</title></rect>`;
+    }).join("") + "</svg>";
+  }
+
+  const COLS = [
+    ["rank", "#", false], ["name", "Player", true], ["pos", "Pos", true], ["price", "Price", true], ["sel", "Owned", true],
+    ["last", "Last GW", true], ["form", "Form", true], ["total", "Total", true], ["g", "G", true], ["a", "A", true],
+    ["cs", "CS", true], ["bonus", "Bonus", true], ["trend", "Weekly points", false],
+  ];
+  function renderTable() {
+    const rows = filtered().filter((p) => !state.q || p.search.includes(state.q));
+    const k = state.sort;
+    rows.sort((a, b) => (typeof a[k] === "string" ? a[k].localeCompare(b[k]) : a[k] - b[k]) * state.dir || b.total - a.total);
+    const shown = rows.slice(0, state.limit);
+    const num = (c) => !["name", "pos", "trend"].includes(c);
+    $("#table").innerHTML =
+      `<thead><tr>${COLS.map(([c, l, s]) => `<th class="${num(c) ? "num" : ""} ${s ? "sort" : ""}" data-col="${c}" ${c === k ? `aria-sort="${state.dir > 0 ? "ascending" : "descending"}"` : ""}>${l}</th>`).join("")}</tr></thead><tbody>` +
+      (shown.map((p, i) => `<tr class="row" data-id="${p.id}" title="Add to comparison">
+        <td class="num">${i + 1}</td>
+        <td><span class="pname">${esc(p.name)}</span> <span class="tag">${esc(teams[p.team].short)}</span></td>
+        <td>${p.pos}</td><td class="num">£${p.price.toFixed(1)}</td><td class="num">${p.sel.toFixed(1)}%</td>
+        <td class="num">${p.last}</td><td class="num">${p.form.toFixed(1)}</td><td class="num"><b>${p.total}</b></td>
+        <td class="num">${p.g}</td><td class="num">${p.a}</td><td class="num">${p.cs}</td><td class="num">${p.bonus}</td>
+        <td>${spark(p)}</td></tr>`).join("") || `<tr><td colspan="${COLS.length}" class="empty">No players match.</td></tr>`) + "</tbody>";
+    $("#table").querySelectorAll("th.sort").forEach((th) => th.onclick = () => {
+      const c = th.dataset.col;
+      state.dir = state.sort === c ? -state.dir : (["name", "pos"].includes(c) ? 1 : -1);
+      state.sort = c; renderTable();
+    });
+    $("#table").querySelectorAll("tr.row").forEach((tr) => tr.onclick = () => addCompare(+tr.dataset.id));
+    $("#moreBtn").style.display = rows.length > state.limit ? "" : "none";
+    $("#moreBtn").textContent = `Show more (${rows.length - shown.length} left)`;
+  }
+})();
+</script>
+</body>
+</html>
