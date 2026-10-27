@@ -85,6 +85,24 @@ def main() -> None:
     }
     (OUT / "bootstrap-static" / "index.html").write_text(json.dumps(bootstrap))
 
+    for mid, team, first, last in [(1234567, "Kobus XI", "Test", "Manager"), (7654321, "Rivals FC", "Other", "Manager")]:
+        rank, total, history = rnd.randint(500_000, 3_000_000), 0, []
+        for gw in range(1, PLAYED + 1):
+            pts = rnd.randint(30, 95)
+            total += pts
+            rank = max(1, int(rank * rnd.uniform(0.45, 1.6)))
+            history.append({
+                "event": gw, "points": pts, "total_points": total, "rank": rnd.randint(1_000, 9_000_000),
+                "overall_rank": rank, "value": 1000 + gw * 2, "bank": rnd.randint(0, 20),
+                "event_transfers": rnd.randint(0, 2), "event_transfers_cost": rnd.choice([0, 0, 4]),
+                "points_on_bench": rnd.randint(0, 15),
+            })
+        d = OUT / "entry" / str(mid)
+        (d / "history").mkdir(parents=True, exist_ok=True)
+        (d / "index.html").write_text(json.dumps({"name": team, "player_first_name": first, "player_last_name": last}))
+        (d / "history" / "index.html").write_text(json.dumps({
+            "current": history, "chips": [{"event": 4, "name": "wildcard"}, {"event": 7, "name": "bboost"}]}))
+
 
 if __name__ == "__main__":
     main()

@@ -75,6 +75,15 @@ select, input[type=search] {
 .tile .k { color: var(--ink-2); font-size: 13px; }
 .tile .v { font-size: 28px; font-weight: 650; margin-top: 4px; letter-spacing: -0.01em; }
 .tile .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.mini { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 12px; }
+.mini .tile { padding: 12px; background: var(--page); }
+.mini .tile .v { font-size: 22px; }
+.idform { display: flex; gap: 6px; }
+.idform input { width: 130px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+.idform button { font: inherit; font-size: 13px; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.note { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; }
+.note:empty { display: none; }
+.note a { color: var(--accent); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 12px; margin-bottom: 12px; }
 .card { min-width: 0; }
 .card .head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
@@ -125,6 +134,22 @@ footer a { color: var(--ink-2); }
   </header>
 
   <div class="tiles" id="tiles"></div>
+
+  <section class="card" style="margin-bottom:12px" id="rankCard">
+    <div class="head">
+      <div><h2>Manager rank by gameweek</h2><p class="desc">Overall and gameweek rank. Higher on the chart is better</p></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <select id="rankPick" aria-label="Manager" hidden></select>
+        <form class="idform" id="rankForm">
+          <input id="rankInput" inputmode="numeric" pattern="[0-9]*" placeholder="Manager ID" aria-label="FPL manager ID">
+          <button type="submit">Show</button>
+        </form>
+      </div>
+    </div>
+    <p class="note" id="rankNote"></p>
+    <div class="tiles mini" id="rankTiles"></div>
+    <div class="chart" id="rankWrap"><canvas id="rankChart" aria-label="Manager rank by gameweek"></canvas></div>
+  </section>
 
   <div class="grid2">
     <section class="card">
@@ -356,7 +381,112 @@ footer a { color: var(--ink-2); }
     pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: css("--surface"), ...extra,
   });
 
-  function renderAll() { renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
+  // ---- Manager rank (docs/data/managers.json, written by scripts/fetch_managers.py) ----
+  const REPO = `https://github.com/${location.hostname.split(".")[0]}/${location.pathname.split("/")[1] || ""}`;
+  const fmtRank = (v) => (v == null ? "–" : Number(v).toLocaleString());
+  const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
+  const CHIPS = { wildcard: "Wildcard", bboost: "Bench Boost", "3xc": "Triple Captain", freehit: "Free Hit", manager: "Assistant Manager" };
+  let M = { managers: [] }, rankId = null;
+
+  fetch("data/managers.json", { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : { managers: [] }))
+    .catch(() => ({ managers: [] }))
+    .then((data) => {
+      M = data;
+      const pick = $("#rankPick");
+      pick.innerHTML = M.managers.map((m) => `<option value="${m.id}">${esc(m.team)}${m.manager ? " · " + esc(m.manager) : ""}</option>`).join("");
+      pick.hidden = M.managers.length < 2;
+      pick.onchange = () => showManager(+pick.value);
+      $("#rankForm").onsubmit = (e) => {
+        e.preventDefault();
+        const id = $("#rankInput").value.trim();
+        if (/^\d+$/.test(id)) showManager(+id);
+      };
+      const fromHash = +(location.hash.match(/manager=(\d+)/) || [])[1];
+      let saved = null;
+      try { saved = +localStorage.getItem("fpl-manager"); } catch {}
+      showManager(fromHash || saved || (M.managers[0] && M.managers[0].id) || null);
+    });
+
+  function showManager(id) {
+    const m = M.managers.find((x) => x.id === id);
+    const howTo = `Add it from <a href="${REPO}/actions/workflows/refresh.yml" target="_blank" rel="noopener">Actions → Refresh FPL data → Run workflow</a>: paste the ID into “manager_id” and run. It appears here about a minute later and is refreshed every week after that.`;
+    $("#rankTiles").innerHTML = "";
+    $("#rankWrap").hidden = !m;
+    if (!m) {
+      if (charts.rank) { charts.rank.destroy(); delete charts.rank; }
+      $("#rankNote").innerHTML = id
+        ? `Manager ${id} isn't tracked yet. ${howTo}`
+        : `Enter an FPL manager ID to see their rank week by week. Your ID is the number in the address of your Points page (fantasy.premierleague.com/entry/<b>ID</b>/event/…). ${howTo}`;
+      return;
+    }
+    rankId = id;
+    $("#rankNote").innerHTML = "";
+    $("#rankInput").value = id;
+    $("#rankPick").value = id;
+    history.replaceState(null, "", `#manager=${id}`);
+    try { localStorage.setItem("fpl-manager", id); } catch {}
+    renderRank();
+  }
+
+  // Round-number ticks (1, 2, 5 × 10^n, finer when the range is narrow) for the log rank axis.
+  function rankTicks(min, max) {
+    for (const steps of [[1, 2, 5], [1, 1.5, 2, 3, 5, 7]]) {
+      const out = [];
+      for (let e = Math.floor(Math.log10(Math.max(1, min))); 10 ** e <= max; e++) {
+        for (const s of steps) { const v = s * 10 ** e; if (v >= min && v <= max) out.push(v); }
+      }
+      if (out.length >= 4 || steps.length > 3) return out;
+    }
+  }
+
+  function renderRank() {
+    const m = M.managers.find((x) => x.id === rankId);
+    if (!m || !m.history.length) return;
+    const h = m.history, last = h[h.length - 1], prev = h[h.length - 2];
+    const move = prev && prev.overall_rank && last.overall_rank ? prev.overall_rank - last.overall_rank : 0;
+    const moveTxt = move ? `<span style="color:${move > 0 ? "var(--up)" : "var(--down)"}">${move > 0 ? "▲" : "▼"} ${compact.format(Math.abs(move))}</span> since GW${prev.gw}` : `GW${last.gw}`;
+    const tiles = [
+      ["Overall rank", fmtRank(last.overall_rank), moveTxt],
+      [`GW${last.gw} points`, last.points, `GW rank ${fmtRank(last.rank)}${last.hit ? ` · −${last.hit} hit` : ""}`],
+      ["Total points", last.total, `${esc(m.team)}`],
+      ["Team value", `£${(last.value).toFixed(1)}m`, `£${last.bank.toFixed(1)}m in the bank`],
+    ];
+    $("#rankTiles").innerHTML = tiles.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
+
+    const chipAt = Object.fromEntries(m.chips.map((c) => [c.gw, CHIPS[c.name] || c.name]));
+    const chipPts = () => ({
+      pointRadius: h.map((x) => (chipAt[x.gw] ? 6 : 3)),
+      pointStyle: h.map((x) => (chipAt[x.gw] ? "rectRot" : "circle")),
+      pointBorderColor: css("--surface"), pointBorderWidth: 2,
+    });
+    const b = base();
+    draw("rank", $("#rankChart"), {
+      type: "line",
+      data: {
+        labels: h.map((x) => "GW" + x.gw),
+        datasets: [
+          line("Overall rank", h.map((x) => x.overall_rank), css("--s1"), chipPts()),
+          line("Gameweek rank", h.map((x) => x.rank), css("--s2"), { pointRadius: 3, pointBorderColor: css("--surface"), pointBorderWidth: 2, borderDash: [4, 3] }),
+        ],
+      },
+      options: base({
+        plugins: { ...b.plugins, tooltip: { ...b.plugins.tooltip,
+          callbacks: {
+            label: (c) => ` ${c.dataset.label}: ${fmtRank(c.parsed.y)}`,
+            afterBody: (items) => {
+              const x = h[items[0].dataIndex];
+              return [`Points: ${x.points}${x.hit ? ` (−${x.hit} hit)` : ""}`, ...(chipAt[x.gw] ? [`Chip: ${chipAt[x.gw]}`] : [])];
+            },
+          } } },
+        scales: { x: b.scales.x, y: { type: "logarithmic", reverse: true, grid: { color: css("--grid") }, border: { display: false },
+          afterBuildTicks: (axis) => { axis.ticks = rankTicks(axis.min, axis.max).map((value) => ({ value })); },
+          ticks: { color: css("--muted"), callback: (v) => compact.format(v) } } },
+      }),
+    });
+  }
+
+  function renderAll() { renderRank(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
 
   function renderTiles() {
     const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];
