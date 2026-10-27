@@ -12,6 +12,8 @@ Fantasy Premier League points for every player, gameweek by gameweek, with a das
 | `data/<season>/gw/gwNN.json` | Every player's stats for one gameweek: points, minutes, goals, assists, clean sheets, bonus, BPS and more |
 | `data/<season>/prices.json` | Each player's price per gameweek (in £0.1m), backfilled from their match history then recorded on every refresh |
 | `data/<season>/points_by_gameweek.csv` | One row per player, one column per gameweek. Opens straight in Excel |
+| `scripts/fetch_managers.py` | Pulls rank, points, team value and squad picks per gameweek for the manager IDs in `managers.json` |
+| `managers.json` | The FPL manager (team) IDs shown on the rank chart |
 | `docs/` | The dashboard (static HTML + Chart.js), served by GitHub Pages |
 | `docs/data/fpl.json` | The data file the dashboard reads |
 | `.github/workflows/refresh.yml` | Weekly refresh: fetch, commit new data, redeploy the dashboard |
@@ -26,6 +28,21 @@ Fantasy Premier League points for every player, gameweek by gameweek, with a das
 - Average points per position per gameweek
 - Heatmap of each club's total points per gameweek
 - Sortable, searchable player table with form and a weekly points sparkline
+
+## My team tab
+
+The **My team** tab shows one FPL manager at a time:
+
+- overall and gameweek rank per gameweek (chips marked), plus points, team value and bank
+- points per gameweek by position, after captaincy, auto-subs and chips
+- every player in the squad with their points each week, shaded when they were in the starting XI, outlined on the bench, with the captain marked; switch to "Everyone you've owned" to include sold players
+
+### Tracking a manager
+Your manager ID is the number in the address of your Points page: `fantasy.premierleague.com/entry/<ID>/event/9`.
+
+To start tracking one, go to **Actions → Refresh FPL data → Run workflow**, paste the ID into `manager_id` and run it. (Or add the ID to `managers.json` and commit.)
+It shows on the dashboard a minute later and refreshes with everything else each week. Type the ID into the box on the My team tab, or open `…/FPL_Tracker/#manager=<ID>`.
+The FPL API blocks requests from browsers, which is why managers are fetched by the workflow rather than live on the page.
 
 ## Refresh schedule
 

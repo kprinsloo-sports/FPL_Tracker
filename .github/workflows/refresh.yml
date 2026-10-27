@@ -5,9 +5,14 @@ on:
     # Tuesdays 06:00 UTC: after Monday night games and bonus points are confirmed.
     - cron: "0 6 * * 2"
   workflow_dispatch:
+    inputs:
+      manager_id:
+        description: "FPL manager (team) ID to start tracking on the rank chart (optional)"
+        required: false
+        default: ""
   push:
     branches: [main]
-    paths: ["docs/**", "scripts/**", ".github/workflows/refresh.yml"]
+    paths: ["docs/**", "scripts/**", "managers.json", ".github/workflows/refresh.yml"]
 
 permissions:
   contents: write
@@ -34,13 +39,27 @@ jobs:
       - name: Fetch gameweek points
         run: python scripts/fetch_fpl.py
 
+      - name: Fetch manager history
+        env:
+          MANAGER_ID: ${{ inputs.manager_id }}
+        run: |
+          if [ -n "$MANAGER_ID" ]; then
+            if ! [[ "$MANAGER_ID" =~ ^[0-9]+$ ]]; then
+              echo "::error::manager_id must be a number, got '$MANAGER_ID'"
+              exit 1
+            fi
+            python scripts/fetch_managers.py --add "$MANAGER_ID"
+          else
+            python scripts/fetch_managers.py
+          fi
+
       - name: Commit new data
         run: |
           # Another run may have pushed since checkout. Move onto the latest main
           # (keeping this run's freshly fetched files) so the push never conflicts.
           git fetch origin main
           git reset --mixed origin/main
-          git add data docs/data
+          git add data docs/data managers.json
           if git diff --cached --quiet; then
             echo "No data changes"
             exit 0

@@ -85,6 +85,35 @@ def main() -> None:
     }
     (OUT / "bootstrap-static" / "index.html").write_text(json.dumps(bootstrap))
 
+    for mid, team, first, last in [(1234567, "Kobus XI", "Test", "Manager"), (7654321, "Rivals FC", "Other", "Manager")]:
+        rank, total, history = rnd.randint(500_000, 3_000_000), 0, []
+        for gw in range(1, PLAYED + 1):
+            pts = rnd.randint(30, 95)
+            total += pts
+            rank = max(1, int(rank * rnd.uniform(0.45, 1.6)))
+            history.append({
+                "event": gw, "points": pts, "total_points": total, "rank": rnd.randint(1_000, 9_000_000),
+                "overall_rank": rank, "value": 1000 + gw * 2, "bank": rnd.randint(0, 20),
+                "event_transfers": rnd.randint(0, 2), "event_transfers_cost": rnd.choice([0, 0, 4]),
+                "points_on_bench": rnd.randint(0, 15),
+            })
+        d = OUT / "entry" / str(mid)
+        (d / "history").mkdir(parents=True, exist_ok=True)
+        (d / "index.html").write_text(json.dumps({"name": team, "player_first_name": first, "player_last_name": last}))
+        squad = rnd.sample(range(1, len(elements) + 1), 15)
+        for gw in range(1, PLAYED + 1):
+            if gw > 1:
+                squad[rnd.randrange(15)] = rnd.choice([i for i in range(1, len(elements) + 1) if i not in squad])
+            picks = [{"element": e, "position": i + 1, "multiplier": 0 if i >= 11 else 2 if i == 5 else 1,
+                      "is_captain": i == 5, "is_vice_captain": i == 6} for i, e in enumerate(squad)]
+            pd = d / "event" / str(gw) / "picks"
+            pd.mkdir(parents=True, exist_ok=True)
+            (pd / "index.html").write_text(json.dumps({
+                "active_chip": "bboost" if gw == 7 else None, "picks": picks,
+                "automatic_subs": [{"element_in": squad[11], "element_out": squad[2], "event": gw}] if gw == 3 else []}))
+        (d / "history" / "index.html").write_text(json.dumps({
+            "current": history, "chips": [{"event": 4, "name": "wildcard"}, {"event": 7, "name": "bboost"}]}))
+
 
 if __name__ == "__main__":
     main()
