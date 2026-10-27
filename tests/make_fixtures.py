@@ -100,6 +100,17 @@ def main() -> None:
         d = OUT / "entry" / str(mid)
         (d / "history").mkdir(parents=True, exist_ok=True)
         (d / "index.html").write_text(json.dumps({"name": team, "player_first_name": first, "player_last_name": last}))
+        squad = rnd.sample(range(1, len(elements) + 1), 15)
+        for gw in range(1, PLAYED + 1):
+            if gw > 1:
+                squad[rnd.randrange(15)] = rnd.choice([i for i in range(1, len(elements) + 1) if i not in squad])
+            picks = [{"element": e, "position": i + 1, "multiplier": 0 if i >= 11 else 2 if i == 5 else 1,
+                      "is_captain": i == 5, "is_vice_captain": i == 6} for i, e in enumerate(squad)]
+            pd = d / "event" / str(gw) / "picks"
+            pd.mkdir(parents=True, exist_ok=True)
+            (pd / "index.html").write_text(json.dumps({
+                "active_chip": "bboost" if gw == 7 else None, "picks": picks,
+                "automatic_subs": [{"element_in": squad[11], "element_out": squad[2], "event": gw}] if gw == 3 else []}))
         (d / "history" / "index.html").write_text(json.dumps({
             "current": history, "chips": [{"event": 4, "name": "wildcard"}, {"event": 7, "name": "bboost"}]}))
 

@@ -76,12 +76,27 @@ select, input[type=search] {
 .tile .v { font-size: 28px; font-weight: 650; margin-top: 4px; letter-spacing: -0.01em; }
 .tile .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
 .mini { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 12px; }
-.mini .tile { padding: 12px; background: var(--page); }
+@media (max-width: 480px) { .squad .hide-sm { display: none; } .mini { grid-template-columns: 1fr 1fr; } .mini .tile .v { font-size: 18px; } }
+.mini .tile { padding: 12px; }
 .mini .tile .v { font-size: 22px; }
 .idform { display: flex; gap: 6px; }
 .idform input { width: 130px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
 .idform button { font: inherit; font-size: 13px; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
 .note { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--axis); margin-bottom: 16px; }
+.tabs button { font: inherit; font-weight: 600; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--ink-2); padding: 8px 14px; margin-bottom: -1px; cursor: pointer; }
+.tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); }
+.teambar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.teambar h2 { margin-right: auto; font-size: 18px; }
+.squad td.gw { padding: 0; text-align: center; min-width: 34px; height: 30px; font-variant-numeric: tabular-nums; border: 2px solid var(--surface); border-radius: 4px; position: relative; }
+.squad td.gw.bench { box-shadow: inset 0 0 0 1px var(--axis); color: var(--ink-2); }
+.squad td.gw.out { color: var(--muted); opacity: 0.55; }
+.squad td.gw sup { position: absolute; top: 1px; right: 2px; font-size: 9px; font-weight: 700; line-height: 1; }
+.squad th.gwh { text-align: center; font-size: 12px; }
+.squad th:first-child, .squad td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.squad tr.gap td { border-top: 1px solid var(--axis); }
+.keyrow { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 12px; margin-top: 10px; align-items: center; }
+.keyrow span.sw { display: inline-block; width: 18px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
 .note:empty { display: none; }
 .note a { color: var(--accent); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 12px; margin-bottom: 12px; }
@@ -133,23 +148,57 @@ footer a { color: var(--ink-2); }
     </div>
   </header>
 
-  <div class="tiles" id="tiles"></div>
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabBtn-overview" data-tab="overview" aria-selected="true">Overview</button>
+    <button type="button" role="tab" id="tabBtn-team" data-tab="team" aria-selected="false">My team</button>
+  </nav>
 
-  <section class="card" style="margin-bottom:12px" id="rankCard">
-    <div class="head">
-      <div><h2>Manager rank by gameweek</h2><p class="desc">Overall and gameweek rank. Higher on the chart is better</p></div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-        <select id="rankPick" aria-label="Manager" hidden></select>
-        <form class="idform" id="rankForm">
-          <input id="rankInput" inputmode="numeric" pattern="[0-9]*" placeholder="Manager ID" aria-label="FPL manager ID">
-          <button type="submit">Show</button>
-        </form>
-      </div>
+  <div id="tab-team" role="tabpanel" hidden>
+    <div class="teambar">
+      <h2 id="teamTitle">My team</h2>
+      <select id="rankPick" aria-label="Manager" hidden></select>
+      <form class="idform" id="rankForm">
+        <input id="rankInput" inputmode="numeric" pattern="[0-9]*" placeholder="Manager ID" aria-label="FPL manager ID">
+        <button type="submit">Show</button>
+      </form>
     </div>
     <p class="note" id="rankNote"></p>
-    <div class="tiles mini" id="rankTiles"></div>
-    <div class="chart" id="rankWrap"><canvas id="rankChart" aria-label="Manager rank by gameweek"></canvas></div>
-  </section>
+    <div id="teamBody" hidden>
+      <div class="tiles mini" id="rankTiles"></div>
+      <section class="card" style="margin-bottom:12px">
+        <div class="head">
+          <div><h2>Rank by gameweek</h2><p class="desc">Overall and gameweek rank. Higher on the chart is better. ◆ marks a chip</p></div>
+        </div>
+        <div class="chart"><canvas id="rankChart" aria-label="Manager rank by gameweek"></canvas></div>
+      </section>
+      <section class="card" style="margin-bottom:12px">
+        <div class="head">
+          <div><h2>Where your points came from</h2><p class="desc">Points scored for you each gameweek by position, after captaincy, auto-subs and chips</p></div>
+        </div>
+        <div class="chart"><canvas id="squadChart" aria-label="Points by position each gameweek"></canvas></div>
+      </section>
+      <section class="card">
+        <div class="head">
+          <div><h2>Squad points per gameweek</h2><p class="desc">Each player's FPL points every week, shaded when they were in your starting XI</p></div>
+          <div class="seg" role="group" aria-label="Players shown" id="squadSeg">
+            <button type="button" data-squad="current" aria-pressed="true">Current squad</button>
+            <button type="button" data-squad="all" aria-pressed="false">Everyone you've owned</button>
+          </div>
+        </div>
+        <div class="scroll"><table class="squad" id="squad"></table></div>
+        <div class="keyrow">
+          <span><span class="sw" style="background:var(--seq-4)"></span>In your XI (darker = more points)</span>
+          <span><span class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></span>On your bench</span>
+          <span><span class="sw" style="background:var(--grid);opacity:.55"></span>Not in your team</span>
+          <span><b>C</b> captain · <b>TC</b> triple captain</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="tab-overview" role="tabpanel">
+
+  <div class="tiles" id="tiles"></div>
 
   <div class="grid2">
     <section class="card">
@@ -230,6 +279,8 @@ footer a { color: var(--ink-2); }
     <div class="scroll"><table id="table"></table></div>
     <button class="more" id="moreBtn" type="button">Show more</button>
   </section>
+
+  </div>
 
   <footer>
     Data from the public <a href="https://fantasy.premierleague.com/">Fantasy Premier League</a> API, refreshed weekly by GitHub Actions.
@@ -381,12 +432,31 @@ footer a { color: var(--ink-2); }
     pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: css("--surface"), ...extra,
   });
 
-  // ---- Manager rank (docs/data/managers.json, written by scripts/fetch_managers.py) ----
+  // ---- Tabs ----
+  let tab = "overview";
+  function setTab(name) {
+    tab = name;
+    document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
+    $("#tab-overview").hidden = name !== "overview";
+    $("#tab-team").hidden = name !== "team";
+    history.replaceState(null, "", name === "team" && rankId ? `#manager=${rankId}` : location.pathname + location.search);
+    try { localStorage.setItem("fpl-tab", name); } catch {}
+    if (name === "team") renderTeam();
+  }
+  document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => setTab(b.dataset.tab));
+
+  // ---- My team (docs/data/managers.json, written by scripts/fetch_managers.py) ----
   const REPO = `https://github.com/${location.hostname.split(".")[0]}/${location.pathname.split("/")[1] || ""}`;
   const fmtRank = (v) => (v == null ? "–" : Number(v).toLocaleString());
   const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
   const CHIPS = { wildcard: "Wildcard", bboost: "Bench Boost", "3xc": "Triple Captain", freehit: "Free Hit", manager: "Assistant Manager" };
-  let M = { managers: [] }, rankId = null;
+  let M = { managers: [] }, rankId = null, squadMode = "current";
+  $("#squadSeg").onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    squadMode = b.dataset.squad;
+    $("#squadSeg").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    renderSquad();
+  };
 
   fetch("data/managers.json", { cache: "no-cache" })
     .then((r) => (r.ok ? r.json() : { managers: [] }))
@@ -403,30 +473,110 @@ footer a { color: var(--ink-2); }
         if (/^\d+$/.test(id)) showManager(+id);
       };
       const fromHash = +(location.hash.match(/manager=(\d+)/) || [])[1];
-      let saved = null;
-      try { saved = +localStorage.getItem("fpl-manager"); } catch {}
+      let saved = null, savedTab = null;
+      try { saved = +localStorage.getItem("fpl-manager"); savedTab = localStorage.getItem("fpl-tab"); } catch {}
       showManager(fromHash || saved || (M.managers[0] && M.managers[0].id) || null);
+      setTab(fromHash ? "team" : savedTab === "team" ? "team" : "overview");
+      addEventListener("hashchange", () => {
+        const id = +(location.hash.match(/manager=(\d+)/) || [])[1];
+        if (id && id !== rankId) { showManager(id); setTab("team"); }
+      });
     });
 
   function showManager(id) {
     const m = M.managers.find((x) => x.id === id);
+    rankId = id;
     const howTo = `Add it from <a href="${REPO}/actions/workflows/refresh.yml" target="_blank" rel="noopener">Actions → Refresh FPL data → Run workflow</a>: paste the ID into “manager_id” and run. It appears here about a minute later and is refreshed every week after that.`;
-    $("#rankTiles").innerHTML = "";
-    $("#rankWrap").hidden = !m;
+    $("#teamBody").hidden = !m;
+    $("#teamTitle").textContent = m ? m.team + (m.manager ? " · " + m.manager : "") : "My team";
     if (!m) {
-      if (charts.rank) { charts.rank.destroy(); delete charts.rank; }
       $("#rankNote").innerHTML = id
         ? `Manager ${id} isn't tracked yet. ${howTo}`
         : `Enter an FPL manager ID to see their rank week by week. Your ID is the number in the address of your Points page (fantasy.premierleague.com/entry/<b>ID</b>/event/…). ${howTo}`;
       return;
     }
-    rankId = id;
     $("#rankNote").innerHTML = "";
     $("#rankInput").value = id;
     $("#rankPick").value = id;
-    history.replaceState(null, "", `#manager=${id}`);
+    if (tab === "team") history.replaceState(null, "", `#manager=${id}`);
     try { localStorage.setItem("fpl-manager", id); } catch {}
-    renderRank();
+    renderTeam();
+  }
+
+  function renderTeam() {
+    if (tab !== "team" || !M.managers.some((x) => x.id === rankId)) return;
+    renderRank(); renderSquadChart(); renderSquad();
+  }
+
+  // Per gameweek: { playerId: { mult, pos } } for the selected manager.
+  function teamPicks(m) {
+    const out = {};
+    for (const [gw, g] of Object.entries(m.picks || {})) {
+      out[gw] = Object.fromEntries(g.picks.map(([id, pos, mult]) => [id, { pos, mult }]));
+    }
+    return out;
+  }
+
+  function renderSquadChart() {
+    if (!D) return;
+    const m = M.managers.find((x) => x.id === rankId);
+    const picks = teamPicks(m), gws = m.history.map((h) => h.gw);
+    const order = ["GKP", "DEF", "MID", "FWD"];
+    const datasets = order.map((pos, i) => ({
+      label: pos, backgroundColor: css(`--s${i + 1}`), borderColor: css("--surface"), borderWidth: { top: 2 }, borderSkipped: "bottom",
+      data: gws.map((gw) => {
+        const gi = D.gws.indexOf(gw);
+        return Object.entries(picks[gw] || {}).reduce((t, [id, p]) => {
+          const pl = byId[id];
+          return pl && pl.pos === pos && gi >= 0 ? t + pl.pts[gi] * p.mult : t;
+        }, 0);
+      }),
+    }));
+    const b = base();
+    draw("squad", $("#squadChart"), {
+      type: "bar",
+      data: { labels: gws.map((g) => "GW" + g), datasets },
+      options: base({
+        plugins: { ...b.plugins, tooltip: { ...b.plugins.tooltip, callbacks: {
+          footer: (items) => `Total: ${items.reduce((t, i) => t + i.parsed.y, 0)} pts`,
+        } } },
+        scales: { x: { ...b.scales.x, stacked: true }, y: { ...b.scales.y, stacked: true } },
+      }),
+    });
+  }
+
+  function renderSquad() {
+    if (!D) return;
+    const m = M.managers.find((x) => x.id === rankId);
+    const picks = teamPicks(m), gws = D.gws;
+    const latest = String(Math.max(...Object.keys(picks).map(Number)));
+    const current = Object.entries(picks[latest] || {}).sort((a, b) => a[1].pos - b[1].pos).map(([id]) => +id);
+    let ids = current;
+    if (squadMode === "all") {
+      const past = new Set(Object.values(picks).flatMap((g) => Object.keys(g).map(Number)));
+      current.forEach((id) => past.delete(id));
+      ids = [...current, ...[...past].sort((a, b) => (byId[b]?.total || 0) - (byId[a]?.total || 0))];
+    }
+    const forYou = (id) => gws.reduce((t, gw, gi) => t + (picks[gw]?.[id] ? byId[id].pts[gi] * picks[gw][id].mult : 0), 0);
+    const all = ids.flatMap((id) => (byId[id] ? byId[id].pts : [])), hi = Math.max(4, ...all);
+    const step = (v) => Math.max(1, Math.min(7, Math.ceil((v / hi) * 7)));
+    const inkFor = (s) => (isDark() ? (s >= 6 ? "#0b0b0b" : "var(--ink)") : (s >= 4 ? "#ffffff" : "var(--ink)"));
+    const rows = ids.filter((id) => byId[id]).map((id, i) => {
+      const p = byId[id], inSquad = current.includes(id);
+      const cells = gws.map((gw, gi) => {
+        const pick = picks[gw]?.[id], v = p.pts[gi];
+        const base = `${esc(p.name)} · GW${gw}: <b>${v} pts</b>`;
+        if (!pick) return `<td class="gw out" data-tip="${base}<br>Not in your team">${v}</td>`;
+        if (!pick.mult) return `<td class="gw bench" data-tip="${base}<br>On your bench">${v}</td>`;
+        const s = step(v), tag = pick.mult === 3 ? "TC" : pick.mult === 2 ? "C" : "";
+        const role = pick.mult > 1 ? `${tag === "TC" ? "Triple captain" : "Captain"} (×${pick.mult}): <b>${v * pick.mult} pts</b> for you` : "In your XI";
+        return `<td class="gw" data-tip="${base}<br>${role}" style="background:var(--seq-${s});color:${inkFor(s)}">${v}${tag ? `<sup>${tag}</sup>` : ""}</td>`;
+      }).join("");
+      const gap = squadMode === "all" && i === current.length ? ' class="gap"' : "";
+      return `<tr${gap}><td><span class="pname">${esc(p.name)}</span> <span class="tag">${esc(teams[p.team].short)} ${p.pos}</span>${inSquad ? "" : ' <span class="tag">(sold)</span>'}</td>
+        <td class="num hide-sm">£${p.price.toFixed(1)}</td><td class="num"><b>${forYou(id)}</b></td><td class="num hide-sm">${p.total}</td>${cells}</tr>`;
+    });
+    $("#squad").innerHTML = `<thead><tr><th>Player</th><th class="num hide-sm">Price</th><th class="num" title="Points scored for your team, after captaincy and bench">For you</th><th class="num hide-sm">Season</th>${gws.map((g) => `<th class="gwh">${g}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
   }
 
   // Round-number ticks (1, 2, 5 × 10^n, finer when the range is narrow) for the log rank axis.
@@ -486,7 +636,7 @@ footer a { color: var(--ink-2); }
     });
   }
 
-  function renderAll() { renderRank(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
+  function renderAll() { renderTeam(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
 
   function renderTiles() {
     const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];
