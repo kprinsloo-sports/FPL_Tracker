@@ -82,6 +82,7 @@ def main() -> None:
         "teams": [{"id": i, "name": n, "short_name": s} for i, (n, s) in enumerate(TEAMS, 1)],
         "element_types": [{"id": i, "singular_name_short": s} for i, s, _ in POSITIONS],
         "elements": elements,
+        "total_players": 11_234_567,
     }
     (OUT / "bootstrap-static" / "index.html").write_text(json.dumps(bootstrap))
 

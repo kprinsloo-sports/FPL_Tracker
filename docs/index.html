@@ -23,6 +23,7 @@
   --seq-0: #f0efec; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec;
   --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
   --up: #006300; --down: #d03b3b;
+  --off: #e1e0d9;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -35,6 +36,7 @@
     --seq-0: #262624; --seq-1: #0d366b; --seq-2: #104281; --seq-3: #184f95;
     --seq-4: #1c5cab; --seq-5: #2a78d6; --seq-6: #5598e7; --seq-7: #9ec5f4;
     --up: #0ca30c; --down: #e66767;
+    --off: #383835;
   }
 }
 :root[data-theme="dark"] {
@@ -47,6 +49,7 @@
   --seq-0: #262624; --seq-1: #0d366b; --seq-2: #104281; --seq-3: #184f95;
   --seq-4: #1c5cab; --seq-5: #2a78d6; --seq-6: #5598e7; --seq-7: #9ec5f4;
   --up: #0ca30c; --down: #e66767;
+  --off: #383835;
 }
 * { box-sizing: border-box; }
 body {
@@ -90,7 +93,7 @@ select, input[type=search] {
 .teambar h2 { margin-right: auto; font-size: 18px; }
 .squad td.gw { padding: 0; text-align: center; min-width: 34px; height: 30px; font-variant-numeric: tabular-nums; border: 2px solid var(--surface); border-radius: 4px; position: relative; }
 .squad td.gw.bench { box-shadow: inset 0 0 0 1px var(--axis); color: var(--ink-2); }
-.squad td.gw.out { color: var(--muted); opacity: 0.55; }
+.squad td.gw.out { background: var(--off); color: var(--muted); }
 .squad td.gw sup { position: absolute; top: 1px; right: 2px; font-size: 9px; font-weight: 700; line-height: 1; }
 .squad th.gwh { text-align: center; font-size: 12px; }
 .squad th:first-child, .squad td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
@@ -189,7 +192,7 @@ footer a { color: var(--ink-2); }
         <div class="keyrow">
           <span><span class="sw" style="background:var(--seq-4)"></span>In your XI (darker = more points)</span>
           <span><span class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></span>On your bench</span>
-          <span><span class="sw" style="background:var(--grid);opacity:.55"></span>Not in your team</span>
+          <span><span class="sw" style="background:var(--off)"></span>Not in your team</span>
           <span><b>C</b> captain · <b>TC</b> triple captain</span>
         </div>
       </section>
@@ -579,6 +582,14 @@ footer a { color: var(--ink-2); }
     $("#squad").innerHTML = `<thead><tr><th>Player</th><th class="num hide-sm">Price</th><th class="num" title="Points scored for your team, after captaincy and bench">For you</th><th class="num hide-sm">Season</th>${gws.map((g) => `<th class="gwh">${g}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
   }
 
+  const totalPlayers = () => (D && D.total_players) || 0;
+  // "Top 0.48%" for a rank, or "" until the player count is known.
+  function topPct(rank) {
+    if (!rank || !totalPlayers()) return "";
+    const pct = (rank / totalPlayers()) * 100;
+    return `Top ${pct < 1 ? pct.toFixed(2) : pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`;
+  }
+
   // Round-number ticks (1, 2, 5 × 10^n, finer when the range is narrow) for the log rank axis.
   function rankTicks(min, max) {
     for (const steps of [[1, 2, 5], [1, 1.5, 2, 3, 5, 7]]) {
@@ -597,7 +608,7 @@ footer a { color: var(--ink-2); }
     const move = prev && prev.overall_rank && last.overall_rank ? prev.overall_rank - last.overall_rank : 0;
     const moveTxt = move ? `<span style="color:${move > 0 ? "var(--up)" : "var(--down)"}">${move > 0 ? "▲" : "▼"} ${compact.format(Math.abs(move))}</span> since GW${prev.gw}` : `GW${last.gw}`;
     const tiles = [
-      ["Overall rank", fmtRank(last.overall_rank), moveTxt],
+      ["Overall rank", fmtRank(last.overall_rank), (topPct(last.overall_rank) ? `${topPct(last.overall_rank)} of ${compact.format(totalPlayers())} players<br>` : "") + moveTxt],
       [`GW${last.gw} points`, last.points, `GW rank ${fmtRank(last.rank)}${last.hit ? ` · −${last.hit} hit` : ""}`],
       ["Total points", last.total, `${esc(m.team)}`],
       ["Team value", `£${(last.value).toFixed(1)}m`, `£${last.bank.toFixed(1)}m in the bank`],
@@ -623,7 +634,7 @@ footer a { color: var(--ink-2); }
       options: base({
         plugins: { ...b.plugins, tooltip: { ...b.plugins.tooltip,
           callbacks: {
-            label: (c) => ` ${c.dataset.label}: ${fmtRank(c.parsed.y)}`,
+            label: (c) => ` ${c.dataset.label}: ${fmtRank(c.parsed.y)}${topPct(c.parsed.y) ? ` (${topPct(c.parsed.y).toLowerCase()})` : ""}`,
             afterBody: (items) => {
               const x = h[items[0].dataIndex];
               return [`Points: ${x.points}${x.hit ? ` (−${x.hit} hit)` : ""}`, ...(chipAt[x.gw] ? [`Chip: ${chipAt[x.gw]}`] : [])];

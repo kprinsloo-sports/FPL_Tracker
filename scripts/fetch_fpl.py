@@ -217,6 +217,7 @@ def build(bootstrap: dict, gameweeks: dict[int, dict], prices: dict[str, dict[st
     return {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "season": season_label(events),
+        "total_players": bootstrap.get("total_players"),
         "gws": gws,
         "gw_meta": [
             {
