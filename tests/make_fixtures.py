@@ -61,6 +61,13 @@ def main() -> None:
                 "total_points": pts, "minutes": minutes, "goals_scored": goals, "assists": assists,
                 "clean_sheets": cs, "bonus": bonus, "bps": pts * 3, "saves": 0, "yellow_cards": 0,
                 "red_cards": 0, "expected_goal_involvements": f"{el['_skill'] * 0.6:.2f}",
+                "expected_goals": f"{el['_skill'] * 0.4 * (minutes > 0):.2f}", "expected_assists": f"{el['_skill'] * 0.2 * (minutes > 0):.2f}",
+                "expected_goals_conceded": f"{rnd.random() * 2 * (minutes > 0):.2f}", "goals_conceded": rnd.randint(0, 3) if minutes else 0,
+                "influence": f"{pts * 4.2:.1f}", "creativity": f"{rnd.random() * 40 * (minutes > 0):.1f}", "threat": f"{goals * 30 + rnd.random() * 20:.1f}",
+                "ict_index": f"{pts * 0.9:.1f}", "starts": int(minutes >= 60), "tackles": rnd.randint(0, 4) if minutes else 0,
+                "recoveries": rnd.randint(0, 8) if minutes else 0, "clearances_blocks_interceptions": rnd.randint(0, 6) if minutes else 0,
+                "defensive_contribution": rnd.randint(0, 12) if minutes else 0, "own_goals": 0, "penalties_saved": 0, "penalties_missed": 0,
+                "in_dreamteam": pts >= 12,
             }})
         d = OUT / "event" / str(gw) / "live"
         d.mkdir(parents=True, exist_ok=True)

@@ -16,6 +16,8 @@ Outputs:
   data/<season>/points_by_gameweek.csv player x gameweek points table
   data/<season>/prices.json            each player's price (in £0.1m) per gameweek
   docs/data/fpl.json                   everything the dashboard needs
+  docs/data/stats.json                 every stat summed over the season and the
+                                       last 4 gameweeks, for the Top performers tab
 """
 
 from __future__ import annotations
@@ -35,10 +37,16 @@ API_BASE = os.environ.get("FPL_API_BASE", "https://fantasy.premierleague.com/api
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 SITE_DATA = ROOT / "docs" / "data" / "fpl.json"
+STATS_DATA = ROOT / "docs" / "data" / "stats.json"
 
 # Gameweeks this close to the latest finished one are always re-downloaded.
 REFRESH_RECENT = 2
 
+# Bump when compact_live stores more fields, so cached gameweeks are re-fetched.
+STATS_VERSION = 2
+
+# Always present in a cached gameweek (0 when the API omits them). compact_live
+# also keeps every other numeric stat the API returns (xG, ICT, tackles, ...).
 STAT_KEYS = [
     "total_points",
     "minutes",
@@ -83,14 +91,17 @@ def compact_live(live: dict) -> dict[str, dict]:
     out = {}
     for el in live.get("elements", []):
         stats = el.get("stats", {})
-        row = {}
-        for key in STAT_KEYS:
-            val = stats.get(key, 0)
-            if isinstance(val, str):
+        row = {key: 0 for key in STAT_KEYS}
+        for key, val in stats.items():
+            if isinstance(val, bool):
+                val = int(val)
+            elif isinstance(val, str):
                 try:
                     val = float(val)
                 except ValueError:
-                    val = 0
+                    continue
+            elif not isinstance(val, (int, float)):
+                continue
             row[key] = val
         out[str(el["id"])] = row
     return out
@@ -111,10 +122,13 @@ def load_gameweeks(season_dir: Path, events: list[dict]) -> dict[int, dict]:
         path = gw_dir / f"gw{gw:02d}.json"
         stale = gw > latest - REFRESH_RECENT or not ev.get("data_checked", ev.get("finished"))
         if path.exists() and not stale:
-            gameweeks[gw] = json.loads(path.read_text())
-            continue
+            cached = json.loads(path.read_text())
+            if cached.get("v") == STATS_VERSION:
+                gameweeks[gw] = cached
+                continue
         print(f"Fetching gameweek {gw}")
         payload = {
+            "v": STATS_VERSION,
             "gameweek": gw,
             "finished": bool(ev.get("finished")),
             "data_checked": bool(ev.get("data_checked")),
@@ -233,6 +247,48 @@ def build(bootstrap: dict, gameweeks: dict[int, dict], prices: dict[str, dict[st
     }
 
 
+def build_stats(bootstrap: dict, gameweeks: dict[int, dict]) -> dict:
+    """Every stat summed per player over the season and over the last 4 gameweeks."""
+    gws = sorted(gameweeks)
+    keys = sorted({k for gw in gws for row in gameweeks[gw]["players"].values() for k in row})
+
+    def window(span: list[int]) -> dict:
+        rows = {}
+        for el in bootstrap["elements"]:
+            pid = str(el["id"])
+            totals = dict.fromkeys(keys, 0)
+            apps = 0
+            for gw in span:
+                row = gameweeks[gw]["players"].get(pid)
+                if not row:
+                    continue
+                apps += row.get("minutes", 0) > 0
+                for k, v in row.items():
+                    totals[k] += v
+            rows[pid] = [round(totals[k], 2) for k in keys] + [apps]
+        return {"gws": span, "rows": rows}
+
+    def num(v) -> float:
+        try:
+            return float(v or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    return {
+        "keys": keys + ["apps"],
+        "windows": {"season": window(gws), "last4": window(gws[-4:])},
+        "extra": {
+            str(el["id"]): {
+                "form": num(el.get("form")),
+                "ppg": num(el.get("points_per_game")),
+                "tin": el.get("transfers_in_event", 0),
+                "tout": el.get("transfers_out_event", 0),
+            }
+            for el in bootstrap["elements"]
+        },
+    }
+
+
 def write_csv(path: Path, data: dict) -> None:
     teams = {t["id"]: t["short"] for t in data["teams"]}
     with path.open("w", newline="") as fh:
@@ -257,6 +313,7 @@ def main() -> int:
     write_csv(season_dir / "points_by_gameweek.csv", data)
     SITE_DATA.parent.mkdir(parents=True, exist_ok=True)
     SITE_DATA.write_text(json.dumps(data, separators=(",", ":")) + "\n")
+    STATS_DATA.write_text(json.dumps(build_stats(bootstrap, gameweeks), separators=(",", ":")) + "\n")
     print(f"Season {season}: {len(data['players'])} players, gameweeks {data['gws'][0]}-{data['gws'][-1]}")
     return 0
 

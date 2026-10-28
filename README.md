@@ -29,6 +29,15 @@ Fantasy Premier League points for every player, gameweek by gameweek, with a das
 - Heatmap of each club's total points per gameweek
 - Sortable, searchable player table with form and a weekly points sparkline
 
+## Top performers tab
+
+Four tables (goalkeepers, defenders, midfielders, forwards) with the top 30 players over the **last 4 gameweeks** or the **whole season**.
+Every stat FPL publishes per gameweek is summed for the period (points, minutes, starts, goals, assists, xG, xA, xGI, xGC, clean sheets, saves,
+defensive contributions, tackles, recoveries, bonus, BPS, ICT, Team of the Week appearances, cards and more), plus per-90 and value rates,
+FPL form, price change and net transfers. Click any column header to sort that table by it; click again for lowest first.
+Rate columns and lowest-first sorts only include players with at least 45 minutes per gameweek in the period, so cameos don't top the list.
+The data comes from `docs/data/stats.json`, built by `scripts/fetch_fpl.py`.
+
 ## My team tab
 
 The **My team** tab shows one FPL manager at a time:
