@@ -36,6 +36,7 @@ Every stat FPL publishes per gameweek is summed for the period (points, minutes,
 defensive contributions, tackles, recoveries, bonus, BPS, ICT, Team of the Week appearances, cards and more), plus per-90 and value rates,
 FPL form, price change and net transfers. Click any column header to sort that table by it; click again for lowest first.
 Rate columns and lowest-first sorts only include players with at least 45 minutes per gameweek in the period, so cameos don't top the list.
+Players in your current squad (the manager selected on the My team tab) are highlighted with an **XI** or **Bench** tag (C/TC for your captain); squad players outside the top 30 are listed under each table with their rank.
 The data comes from `docs/data/stats.json`, built by `scripts/fetch_fpl.py`.
 
 ## My team tab
