@@ -26,7 +26,7 @@ Fantasy Premier League points for every player, gameweek by gameweek, with a das
 - Compare up to 8 players week by week, weekly or cumulative
 - Player price by gameweek: starts with the 5 most-owned players, search to add anyone
 - Average points per position per gameweek
-- Heatmap of each club's total points per gameweek
+- Heatmap of each club's total points per gameweek, red (low) to green (high)
 - Sortable, searchable player table with form and a weekly points sparkline
 
 ## Top performers tab
@@ -45,7 +45,7 @@ The **My team** tab shows one FPL manager at a time:
 
 - overall and gameweek rank per gameweek (chips marked), plus points, team value and bank
 - points per gameweek by position, after captaincy, auto-subs and chips
-- every player in the squad with their points each week, shaded when they were in the starting XI, outlined on the bench, with the captain marked; switch to "Everyone you've owned" to include sold players
+- every player in the squad with their points each week, coloured red (0 pts) to green (11+ pts) when they were in the starting XI, outlined on the bench, grey when they weren't in the team, with the captain marked; switch to "Everyone you've owned" to include sold players
 
 ### Tracking a manager
 Your manager ID is the number in the address of your Points page: `fantasy.premierleague.com/entry/<ID>/event/9`.
