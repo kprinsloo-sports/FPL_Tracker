@@ -6,6 +6,7 @@ Uses only the public FPL API and the Python standard library:
   event/{gw}/live/    every player's stats for one gameweek
   element-summary/{id}/  a player's match history, used once per player to
                          backfill their price at each gameweek
+  fixtures/           every fixture of the season, for predicted points
 
 Raw gameweek stats are cached per season under data/<season>/gw/ so old
 gameweeks are only downloaded once. The latest few gameweeks are always
@@ -17,7 +18,9 @@ Outputs:
   data/<season>/prices.json            each player's price (in £0.1m) per gameweek
   docs/data/fpl.json                   everything the dashboard needs
   docs/data/stats.json                 every stat summed over the season and the
-                                       last 4 gameweeks, for the Top performers tab
+                                       last 4 gameweeks, plus predicted points for
+                                       the next 3 (scripts/predict.py), for the
+                                       Top performers tab
 """
 
 from __future__ import annotations
@@ -32,6 +35,8 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
+
+from predict import build_predictions
 
 API_BASE = os.environ.get("FPL_API_BASE", "https://fantasy.premierleague.com/api").rstrip("/")
 ROOT = Path(__file__).resolve().parent.parent
@@ -247,8 +252,9 @@ def build(bootstrap: dict, gameweeks: dict[int, dict], prices: dict[str, dict[st
     }
 
 
-def build_stats(bootstrap: dict, gameweeks: dict[int, dict]) -> dict:
-    """Every stat summed per player over the season and over the last 4 gameweeks."""
+def build_stats(bootstrap: dict, gameweeks: dict[int, dict], fixtures: list[dict]) -> dict:
+    """Every stat summed per player over the season and over the last 4 gameweeks,
+    plus predicted points for the next few gameweeks."""
     gws = sorted(gameweeks)
     keys = sorted({k for gw in gws for row in gameweeks[gw]["players"].values() for k in row})
 
@@ -286,6 +292,7 @@ def build_stats(bootstrap: dict, gameweeks: dict[int, dict]) -> dict:
             }
             for el in bootstrap["elements"]
         },
+        "predict": build_predictions(bootstrap, gameweeks, fixtures),
     }
 
 
@@ -313,7 +320,8 @@ def main() -> int:
     write_csv(season_dir / "points_by_gameweek.csv", data)
     SITE_DATA.parent.mkdir(parents=True, exist_ok=True)
     SITE_DATA.write_text(json.dumps(data, separators=(",", ":")) + "\n")
-    STATS_DATA.write_text(json.dumps(build_stats(bootstrap, gameweeks), separators=(",", ":")) + "\n")
+    fixtures = get_json("fixtures/")
+    STATS_DATA.write_text(json.dumps(build_stats(bootstrap, gameweeks, fixtures), separators=(",", ":")) + "\n")
     print(f"Season {season}: {len(data['players'])} players, gameweeks {data['gws'][0]}-{data['gws'][-1]}")
     return 0
 
