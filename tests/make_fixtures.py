@@ -32,14 +32,16 @@ def main() -> None:
                 elements.append({
                     "id": pid, "web_name": f"Player{pid}", "first_name": "Test", "second_name": f"Player{pid}",
                     "team": tid, "element_type": etype, "now_cost": 40 + int(skill * 90),
-                    "selected_by_percent": f"{skill * 40:.1f}", "status": "a", "_skill": skill,
+                    "selected_by_percent": f"{skill * 40:.1f}", "_skill": skill,
+                    "status": "d" if pid % 50 == 0 else "a", "chance_of_playing_next_round": 50 if pid % 50 == 0 else None,
                 })
                 pid += 1
 
     events = []
     for gw in range(1, 39):
         events.append({
-            "id": gw, "name": f"Gameweek {gw}", "deadline_time": f"2026-08-{(gw % 28) + 1:02d}T17:30:00Z",
+            "id": gw, "name": f"Gameweek {gw}",
+            "deadline_time": f"{2026 if gw <= PLAYED else 2099}-{gw // 28 + 8:02d}-{(gw % 28) + 1:02d}T17:30:00Z",
             "finished": gw <= PLAYED, "data_checked": gw < PLAYED, "is_current": gw == PLAYED,
             "average_entry_score": rnd.randint(38, 68) if gw <= PLAYED else 0,
             "highest_score": rnd.randint(110, 160) if gw <= PLAYED else None,
@@ -92,6 +94,18 @@ def main() -> None:
         "total_players": 11_234_567,
     }
     (OUT / "bootstrap-static" / "index.html").write_text(json.dumps(bootstrap))
+
+    # Round-robin fixtures; GW11 is a blank for teams 1-2 and a double for 3-4.
+    fixtures, ids = [], list(range(1, len(TEAMS) + 1))
+    for gw in range(1, 39):
+        pairs = [(ids[i], ids[-1 - i]) for i in range(len(ids) // 2)]
+        if gw == PLAYED + 2:
+            pairs = [pr for pr in pairs if 1 not in pr and 2 not in pr] + [(3, 4)]
+        for h, a in pairs:
+            fixtures.append({"id": len(fixtures) + 1, "event": gw, "team_h": h if gw % 2 else a, "team_a": a if gw % 2 else h, "finished": gw <= PLAYED})
+        ids = [ids[0]] + [ids[-1]] + ids[1:-1]
+    (OUT / "fixtures").mkdir(parents=True, exist_ok=True)
+    (OUT / "fixtures" / "index.html").write_text(json.dumps(fixtures))
 
     for mid, team, first, last in [(1234567, "Kobus XI", "Test", "Manager"), (7654321, "Rivals FC", "Other", "Manager")]:
         rank, total, history = rnd.randint(500_000, 3_000_000), 0, []

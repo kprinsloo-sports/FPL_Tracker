@@ -556,10 +556,19 @@ footer a { color: var(--ink-2); }
     if (tab !== "top" || !D) return;
     if (!S) { $("#topNote").textContent = "Stats will appear after the next data refresh."; $("#topTables").innerHTML = ""; return; }
     const win = S.windows[topWin], gws = win.gws;
-    const cols = PERF_COLS.filter(([k, , , , get]) => get || S.keys.includes(k));
+    // Predicted points for the next gameweeks (scripts/predict.py), right after price and ownership.
+    const P = S.predict, nextPts = (p) => (P && P.players[p.id]) || [];
+    const predCols = !P ? [] : [
+      ...P.gws.map((g, i) => [`xp${i}`, `GW${g}`, `Predicted points in GW${g}`, 1, (s, p) => nextPts(p)[i] || 0]),
+      ["xp", "Next " + P.gws.length, `Predicted points over GW${P.gws[0]}–${P.gws[P.gws.length - 1]}`, 1, (s, p) => nextPts(p).reduce((a, b) => a + b, 0)],
+    ];
+    const known = PERF_COLS.filter(([k, , , , get]) => get || S.keys.includes(k));
+    const cols = [...known.slice(0, 2), ...predCols, ...known.slice(2)];
+    const fixtureOf = (p, k) => { const i = /^xp\d$/.test(k) ? +k.slice(2) : -1; return i < 0 ? "" : (P.opp[p.team] || [])[i]?.join(", ") || "No fixture"; };
     const minMins = 45 * gws.length;
     $("#topNote").innerHTML = `${topWin === "last4" ? "Last 4 gameweeks" : "Whole season"}: GW${gws[0]}–${gws[gws.length - 1]}. Click any column to sort; click again to reverse. ` +
-      `Per-90 and per-appearance columns, and any lowest-first sort, only include players with at least ${minMins} minutes.`;
+      `Per-90 and per-appearance columns, and any lowest-first sort, only include players with at least ${minMins} minutes.` +
+      (S.predict ? ` GW${S.predict.gws[0]}+ columns are predicted points from season xG, xA, bonus, cards and defensive contributions per 90, recent minutes, clean-sheet odds and each opponent's strength; hover a cell for the fixture. They don't change with the period above.` : "");
     // The selected manager's squad (My team tab), from their latest picks.
     const mgr = M.managers.find((x) => x.id === rankId) || M.managers[0];
     const latestPicks = mgr && mgr.picks && mgr.picks[Math.max(...Object.keys(mgr.picks).map(Number))];
@@ -589,7 +598,8 @@ footer a { color: var(--ink-2); }
         cols.map(([k, , , d]) => {
           const v = r.v[k];
           const txt = k === "price" ? v.toFixed(1) : k === "sel" ? v.toFixed(1) : k === "dprice" ? (v > 0 ? "+" : "") + v.toFixed(1) : Number(v).toFixed(d);
-          return `<td class="num${k === st.key ? " on" : ""}${!v ? " muted" : ""}">${txt}</td>`;
+          const fx = fixtureOf(r.p, k);
+          return `<td class="num${k === st.key ? " on" : ""}${!v ? " muted" : ""}"${fx ? ` title="${esc(fx)}"` : ""}>${txt}</td>`;
         }).join("") + "</tr>").join("");
       const names = { GKP: "Goalkeepers", DEF: "Defenders", MID: "Midfielders", FWD: "Forwards" };
       return `<section class="card" style="margin-bottom:12px"><div class="head"><div><h2>${names[pos]}</h2><p class="desc">Top 30 by ${esc(cols.find((c) => c[0] === st.key)[2].replace(/^[A-Z](?![A-Z])/, (c) => c.toLowerCase()))}${st.dir > 0 ? " (lowest first)" : ""}</p></div></div>

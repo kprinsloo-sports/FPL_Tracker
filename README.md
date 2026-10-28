@@ -39,6 +39,12 @@ Rate columns and lowest-first sorts only include players with at least 45 minute
 Players in your current squad (the manager selected on the My team tab) are highlighted with an **XI** or **Bench** tag (C/TC for your captain); squad players outside the top 30 are listed under each table with their rank.
 The data comes from `docs/data/stats.json`, built by `scripts/fetch_fpl.py`.
 
+**Predicted points** for the next 3 gameweeks (plus a "Next 3" total) sit next to price and ownership; hover a cell to see the fixture.
+`scripts/predict.py` builds them on each refresh from the 2026/27 scoring rules: season xG, xA, bonus, cards, saves and defensive
+contributions per 90 (shrunk towards the position average for small samples), minutes and availability from the last 4 gameweeks and
+FPL's injury flag, clean-sheet and goals-conceded odds, and each opponent's attack and defence strength (from team xG for and against, with
+a home boost). Blank gameweeks score 0 and double gameweeks add both fixtures.
+
 ## My team tab
 
 The **My team** tab shows one FPL manager at a time:
