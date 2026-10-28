@@ -98,6 +98,13 @@ select, input[type=search] {
 .squad th.gwh { text-align: center; font-size: 12px; }
 .squad th:first-child, .squad td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
 .squad tr.gap td { border-top: 1px solid var(--axis); }
+.perf { font-size: 12px; }
+.perf th, .perf td { padding: 6px 7px; }
+.perf th.sort { cursor: pointer; }
+.perf th.on, .perf td.on { background: var(--wash); }
+.perf th:nth-child(2), .perf td:nth-child(2) { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--grid); }
+.perf td:nth-child(2) { min-width: 140px; }
+.perf .muted { color: var(--muted); }
 .keyrow { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 12px; margin-top: 10px; align-items: center; }
 .keyrow span.sw { display: inline-block; width: 18px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
 .note:empty { display: none; }
@@ -154,6 +161,7 @@ footer a { color: var(--ink-2); }
   <nav class="tabs" role="tablist">
     <button type="button" role="tab" id="tabBtn-overview" data-tab="overview" aria-selected="true">Overview</button>
     <button type="button" role="tab" id="tabBtn-team" data-tab="team" aria-selected="false">My team</button>
+    <button type="button" role="tab" id="tabBtn-top" data-tab="top" aria-selected="false">Top performers</button>
   </nav>
 
   <div id="tab-team" role="tabpanel" hidden>
@@ -197,6 +205,18 @@ footer a { color: var(--ink-2); }
         </div>
       </section>
     </div>
+  </div>
+
+  <div id="tab-top" role="tabpanel" hidden>
+    <div class="teambar">
+      <h2>Top performers</h2>
+      <div class="seg" role="group" aria-label="Period" id="topSeg">
+        <button type="button" data-win="last4" aria-pressed="true">Last 4 gameweeks</button>
+        <button type="button" data-win="season" aria-pressed="false">Whole season</button>
+      </div>
+    </div>
+    <p class="note" id="topNote"></p>
+    <div id="topTables"></div>
   </div>
 
   <div id="tab-overview" role="tabpanel">
@@ -442,11 +462,119 @@ footer a { color: var(--ink-2); }
     document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
     $("#tab-overview").hidden = name !== "overview";
     $("#tab-team").hidden = name !== "team";
-    history.replaceState(null, "", name === "team" && rankId ? `#manager=${rankId}` : location.pathname + location.search);
+    $("#tab-top").hidden = name !== "top";
+    history.replaceState(null, "", name === "team" && rankId ? `#manager=${rankId}` : name === "top" ? "#top" : location.pathname + location.search);
     try { localStorage.setItem("fpl-tab", name); } catch {}
     if (name === "team") renderTeam();
+    if (name === "top") renderTop4();
   }
   document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => setTab(b.dataset.tab));
+
+  // ---- Top performers (docs/data/stats.json, written by scripts/fetch_fpl.py) ----
+  // Each column: key, header, tooltip, decimals, and how to read the value from
+  // a row of window totals (s), the player (p) and FPL's own extras (x).
+  const PERF_COLS = [
+    ["price", "£", "Current price (£m)", 1, (s, p) => p.price],
+    ["sel", "Own%", "Selected by this % of managers", 1, (s, p) => p.sel],
+    ["total_points", "Pts", "FPL points", 0],
+    ["ppa", "Pts/app", "Points per appearance", 1, (s) => (s.apps ? s.total_points / s.apps : 0), true],
+    ["p90", "Pts/90", "Points per 90 minutes", 2, (s) => per90(s, s.total_points), true],
+    ["pm", "Pts/£m", "Points per £1m of current price", 1, (s, p) => s.total_points / p.price],
+    ["apps", "Apps", "Appearances (played any minutes)", 0],
+    ["starts", "Starts", "Starts", 0],
+    ["minutes", "Mins", "Minutes played", 0],
+    ["goals_scored", "G", "Goals", 0],
+    ["assists", "A", "Assists", 0],
+    ["gi", "G+A", "Goal involvements", 0, (s) => s.goals_scored + s.assists],
+    ["expected_goals", "xG", "Expected goals", 2],
+    ["expected_assists", "xA", "Expected assists", 2],
+    ["expected_goal_involvements", "xGI", "Expected goal involvements", 2],
+    ["gmxg", "G−xG", "Goals minus expected goals (positive = finishing above expectation)", 2, (s) => s.goals_scored - s.expected_goals],
+    ["xgi90", "xGI/90", "Expected goal involvements per 90 minutes", 2, (s) => per90(s, s.expected_goal_involvements), true],
+    ["clean_sheets", "CS", "Clean sheets", 0],
+    ["goals_conceded", "GC", "Goals conceded while on the pitch", 0],
+    ["expected_goals_conceded", "xGC", "Expected goals conceded while on the pitch", 2],
+    ["saves", "Sv", "Saves", 0],
+    ["penalties_saved", "PS", "Penalties saved", 0],
+    ["penalties_missed", "PM", "Penalties missed", 0],
+    ["defensive_contribution", "DC", "Defensive contribution (clearances, blocks, interceptions, tackles, recoveries)", 0],
+    ["clearances_blocks_interceptions", "CBI", "Clearances, blocks and interceptions", 0],
+    ["tackles", "Tkl", "Tackles", 0],
+    ["recoveries", "Rec", "Ball recoveries", 0],
+    ["bonus", "Bon", "Bonus points", 0],
+    ["bps", "BPS", "Bonus points system score", 0],
+    ["influence", "Inf", "ICT influence", 1],
+    ["creativity", "Cre", "ICT creativity", 1],
+    ["threat", "Thr", "ICT threat", 1],
+    ["ict_index", "ICT", "ICT index", 1],
+    ["in_dreamteam", "Dream", "Times in the Team of the Week", 0],
+    ["yellow_cards", "YC", "Yellow cards", 0],
+    ["red_cards", "RC", "Red cards", 0],
+    ["own_goals", "OG", "Own goals", 0],
+    ["form", "Form", "FPL form: average points per match over the last 30 days", 1, (s, p, x) => x.form],
+    ["ppg", "PPG", "FPL points per game, whole season", 1, (s, p, x) => x.ppg],
+    ["dprice", "Δ£", "Price change since gameweek 1 (£m)", 1, (s, p) => priceChange(p)],
+    ["net", "Net tr.", "Transfers in minus out for the current gameweek", 0, (s, p, x) => x.tin - x.tout],
+  ];
+  const per90 = (s, v) => (s.minutes ? (v / s.minutes) * 90 : 0);
+  function priceChange(p) {
+    const known = (p.prices || []).filter((v) => v != null);
+    return known.length ? known[known.length - 1] - known[0] : 0;
+  }
+  let S = null, topWin = "last4";
+  const topSort = {};
+
+  fetch("data/stats.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((data) => {
+    S = data;
+    if (tab === "top") renderTop4();
+  });
+  $("#topSeg").onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    topWin = b.dataset.win;
+    $("#topSeg").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    renderTop4();
+  };
+
+  function renderTop4() {
+    if (tab !== "top" || !D) return;
+    if (!S) { $("#topNote").textContent = "Stats will appear after the next data refresh."; $("#topTables").innerHTML = ""; return; }
+    const win = S.windows[topWin], gws = win.gws;
+    const cols = PERF_COLS.filter(([k, , , , get]) => get || S.keys.includes(k));
+    const minMins = 45 * gws.length;
+    $("#topNote").innerHTML = `${topWin === "last4" ? "Last 4 gameweeks" : "Whole season"}: GW${gws[0]}–${gws[gws.length - 1]}. Click any column to sort; click again to reverse. ` +
+      `Per-90 and per-appearance columns, and any lowest-first sort, only include players with at least ${minMins} minutes.`;
+    const rows = D.players.map((p) => {
+      const raw = win.rows[p.id];
+      if (!raw) return null;
+      const s = Object.fromEntries(S.keys.map((k, i) => [k, raw[i]]));
+      const x = S.extra[p.id] || { form: 0, ppg: 0, tin: 0, tout: 0 };
+      return { p, s, v: Object.fromEntries(cols.map(([k, , , , get]) => [k, get ? get(s, p, x) : s[k]])) };
+    }).filter(Boolean);
+
+    $("#topTables").innerHTML = ["GKP", "DEF", "MID", "FWD"].map((pos) => {
+      const st = topSort[pos] || { key: "total_points", dir: -1 };
+      const rate = cols.find((c) => c[0] === st.key)?.[5];
+      const list = rows.filter((r) => r.p.pos === pos && (!(rate || st.dir > 0) || r.s.minutes >= minMins))
+        .sort((a, b) => (a.v[st.key] - b.v[st.key]) * st.dir || b.v.total_points - a.v.total_points)
+        .slice(0, 30);
+      const head = `<th class="num">#</th><th>Player</th>` + cols.map(([k, l, t]) =>
+        `<th class="num sort${k === st.key ? " on" : ""}" data-pos="${pos}" data-key="${k}" title="${esc(t)}"${k === st.key ? ` aria-sort="${st.dir > 0 ? "ascending" : "descending"}"` : ""}>${l}</th>`).join("");
+      const body = list.map((r, i) => `<tr><td class="num muted">${i + 1}</td><td><span class="pname">${esc(r.p.name)}</span> <span class="tag">${esc(teams[r.p.team].short)}</span></td>` +
+        cols.map(([k, , , d]) => {
+          const v = r.v[k];
+          const txt = k === "price" ? v.toFixed(1) : k === "sel" ? v.toFixed(1) : k === "dprice" ? (v > 0 ? "+" : "") + v.toFixed(1) : Number(v).toFixed(d);
+          return `<td class="num${k === st.key ? " on" : ""}${!v ? " muted" : ""}">${txt}</td>`;
+        }).join("") + "</tr>").join("");
+      const names = { GKP: "Goalkeepers", DEF: "Defenders", MID: "Midfielders", FWD: "Forwards" };
+      return `<section class="card" style="margin-bottom:12px"><div class="head"><div><h2>${names[pos]}</h2><p class="desc">Top 30 by ${esc(cols.find((c) => c[0] === st.key)[2].replace(/^[A-Z](?![A-Z])/, (c) => c.toLowerCase()))}${st.dir > 0 ? " (lowest first)" : ""}</p></div></div>
+        <div class="scroll"><table class="perf"><thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${cols.length + 2}" class="empty">No players with enough minutes.</td></tr>`}</tbody></table></div></section>`;
+    }).join("");
+    $("#topTables").querySelectorAll("th.sort").forEach((th) => th.onclick = () => {
+      const { pos, key } = th.dataset, cur = topSort[pos] || { key: "total_points", dir: -1 };
+      topSort[pos] = { key, dir: cur.key === key ? -cur.dir : -1 };
+      renderTop4();
+    });
+  }
 
   // ---- My team (docs/data/managers.json, written by scripts/fetch_managers.py) ----
   const REPO = `https://github.com/${location.hostname.split(".")[0]}/${location.pathname.split("/")[1] || ""}`;
@@ -479,7 +607,7 @@ footer a { color: var(--ink-2); }
       let saved = null, savedTab = null;
       try { saved = +localStorage.getItem("fpl-manager"); savedTab = localStorage.getItem("fpl-tab"); } catch {}
       showManager(fromHash || saved || (M.managers[0] && M.managers[0].id) || null);
-      setTab(fromHash ? "team" : savedTab === "team" ? "team" : "overview");
+      setTab(fromHash ? "team" : location.hash === "#top" ? "top" : ["team", "top"].includes(savedTab) ? savedTab : "overview");
       addEventListener("hashchange", () => {
         const id = +(location.hash.match(/manager=(\d+)/) || [])[1];
         if (id && id !== rankId) { showManager(id); setTab("team"); }
@@ -647,7 +775,7 @@ footer a { color: var(--ink-2); }
     });
   }
 
-  function renderAll() { renderTeam(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
+  function renderAll() { renderTeam(); renderTop4(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
 
   function renderTiles() {
     const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];
