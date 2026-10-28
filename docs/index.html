@@ -158,6 +158,11 @@ tbody tr.row:hover { background: var(--wash); }
 .empty { color: var(--muted); padding: 40px 0; text-align: center; }
 footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
 footer a { color: var(--ink-2); }
+footer.method { margin-top: 16px; line-height: 1.5; max-width: 900px; }
+footer.method h3 { font-size: 13px; color: var(--ink-2); margin: 0 0 6px; }
+footer.method p, footer.method ul { margin: 0 0 8px; }
+footer.method ul { padding-left: 18px; }
+footer.method b { color: var(--ink-2); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -232,6 +237,20 @@ footer a { color: var(--ink-2); }
     </div>
     <p class="note" id="topNote"></p>
     <div id="topTables"></div>
+    <footer class="method" id="predictHow">
+      <h3>How predicted points work</h3>
+      <p>The GW columns estimate each player's FPL points per fixture from the 2026/27 scoring rules, and add them up for a double gameweek (a blank scores 0). Every part is an expected value, so a 30% chance of a 4-point clean sheet counts as 1.2.</p>
+      <ul>
+        <li><b>Minutes and availability.</b> How often the player played, and played 60+ minutes, in the last 4 gameweeks, and their average minutes when they did. FPL's injury flag scales this down (a 75% doubt counts 75%); injured, suspended and unavailable players score 0.</li>
+        <li><b>Appearance.</b> 1 point for playing, 1 more for 60+ minutes.</li>
+        <li><b>Goals and assists.</b> Season xG and xA per 90 × expected minutes × the goal value (GK 10, DEF 6, MID 5, FWD 4) or 3 per assist, scaled up against leaky defences and down against tight ones.</li>
+        <li><b>Clean sheets and goals conceded.</b> The goals the player's team should concede come from the opponent's attack strength. The chance of keeping it at 0 is worth 4 points for GK/DEF and 1 for MID (with 60+ minutes); GK/DEF also lose 1 per 2 expected goals conceded.</li>
+        <li><b>Saves.</b> Goalkeepers' saves per 90, scaled by the opponent's attack, at 1 point per 3.</li>
+        <li><b>Defensive contributions.</b> The chance of reaching 10 actions (DEF) or 12 (MID/FWD) from the player's rate per 90, worth 2 points.</li>
+        <li><b>Bonus and cards.</b> Season bonus per 90, minus 1 per expected yellow and 3 per expected red.</li>
+      </ul>
+      <p><b>Team strength</b> is each team's xG for and against per match this season, blended with 3 league-average matches so early weeks don't swing too far. Home teams get a 10% boost in both. <b>Per-90 rates</b> are blended with the position average over 90 minutes, so a player with a single cameo isn't projected like a star. Penalties, own goals and set-piece duties aren't modelled separately (they're inside xG). Predictions refresh every Tuesday with the data; the code is in <code>scripts/predict.py</code>.</p>
+    </footer>
   </div>
 
   <div id="tab-overview" role="tabpanel">
@@ -568,7 +587,7 @@ footer a { color: var(--ink-2); }
     const minMins = 45 * gws.length;
     $("#topNote").innerHTML = `${topWin === "last4" ? "Last 4 gameweeks" : "Whole season"}: GW${gws[0]}–${gws[gws.length - 1]}. Click any column to sort; click again to reverse. ` +
       `Per-90 and per-appearance columns, and any lowest-first sort, only include players with at least ${minMins} minutes.` +
-      (S.predict ? ` GW${S.predict.gws[0]}+ columns are predicted points from season xG, xA, bonus, cards and defensive contributions per 90, recent minutes, clean-sheet odds and each opponent's strength; hover a cell for the fixture. They don't change with the period above.` : "");
+      (S.predict ? ` GW${S.predict.gws[0]}+ columns are predicted points from season xG, xA, bonus, cards and defensive contributions per 90, recent minutes, clean-sheet odds and each opponent's strength; hover a cell for the fixture. They don't change with the period above; <a href="#top" onclick="document.getElementById('predictHow').scrollIntoView({ behavior: 'smooth' }); return false">how they're calculated</a>.` : "");
     // The selected manager's squad (My team tab), from their latest picks.
     const mgr = M.managers.find((x) => x.id === rankId) || M.managers[0];
     const latestPicks = mgr && mgr.picks && mgr.picks[Math.max(...Object.keys(mgr.picks).map(Number))];
