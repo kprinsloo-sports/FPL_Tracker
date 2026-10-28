@@ -24,6 +24,7 @@
   --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
   --up: #006300; --down: #d03b3b;
   --off: #e1e0d9;
+  --mine: #e6f0fc;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -37,6 +38,7 @@
     --seq-4: #1c5cab; --seq-5: #2a78d6; --seq-6: #5598e7; --seq-7: #9ec5f4;
     --up: #0ca30c; --down: #e66767;
     --off: #383835;
+    --mine: #15253b;
   }
 }
 :root[data-theme="dark"] {
@@ -50,6 +52,7 @@
   --seq-4: #1c5cab; --seq-5: #2a78d6; --seq-6: #5598e7; --seq-7: #9ec5f4;
   --up: #0ca30c; --down: #e66767;
   --off: #383835;
+  --mine: #15253b;
 }
 * { box-sizing: border-box; }
 body {
@@ -105,6 +108,11 @@ select, input[type=search] {
 .perf th:nth-child(2), .perf td:nth-child(2) { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--grid); }
 .perf td:nth-child(2) { min-width: 140px; }
 .perf .muted { color: var(--muted); }
+.perf tr.mine td, .perf tr.mine td:nth-child(2) { background: var(--mine); }
+.perf tr.mine td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.perf tr.gap td { border-top: 2px solid var(--axis); }
+.pill { display: inline-block; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; background: var(--accent); color: #fff; }
+.pill.bench { background: none; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .keyrow { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 12px; margin-top: 10px; align-items: center; }
 .keyrow span.sw { display: inline-block; width: 18px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
 .note:empty { display: none; }
@@ -543,6 +551,13 @@ footer a { color: var(--ink-2); }
     const minMins = 45 * gws.length;
     $("#topNote").innerHTML = `${topWin === "last4" ? "Last 4 gameweeks" : "Whole season"}: GW${gws[0]}–${gws[gws.length - 1]}. Click any column to sort; click again to reverse. ` +
       `Per-90 and per-appearance columns, and any lowest-first sort, only include players with at least ${minMins} minutes.`;
+    // The selected manager's squad (My team tab), from their latest picks.
+    const mgr = M.managers.find((x) => x.id === rankId) || M.managers[0];
+    const latestPicks = mgr && mgr.picks && mgr.picks[Math.max(...Object.keys(mgr.picks).map(Number))];
+    const squad = Object.fromEntries((latestPicks ? latestPicks.picks : []).map(([id, , mult]) => [id, mult]));
+    const pill = (id) => (!(id in squad) ? "" : squad[id] === 0 ? '<span class="pill bench" title="On your bench">Bench</span>'
+      : `<span class="pill" title="In your starting XI">${squad[id] === 3 ? "XI · TC" : squad[id] === 2 ? "XI · C" : "XI"}</span>`);
+    if (latestPicks) $("#topNote").innerHTML += ` Rows marked <span class="pill">XI</span> or <span class="pill bench">Bench</span> are in <b>${esc(mgr.team)}</b>'s current squad; any squad players outside the top 30 are listed below each table.`;
     const rows = D.players.map((p) => {
       const raw = win.rows[p.id];
       if (!raw) return null;
@@ -554,12 +569,14 @@ footer a { color: var(--ink-2); }
     $("#topTables").innerHTML = ["GKP", "DEF", "MID", "FWD"].map((pos) => {
       const st = topSort[pos] || { key: "total_points", dir: -1 };
       const rate = cols.find((c) => c[0] === st.key)?.[5];
-      const list = rows.filter((r) => r.p.pos === pos && (!(rate || st.dir > 0) || r.s.minutes >= minMins))
+      const ranked = rows.filter((r) => r.p.pos === pos && (!(rate || st.dir > 0) || r.s.minutes >= minMins))
         .sort((a, b) => (a.v[st.key] - b.v[st.key]) * st.dir || b.v.total_points - a.v.total_points)
-        .slice(0, 30);
+        .map((r, i) => ({ ...r, rank: i + 1 }));
+      const list = ranked.slice(0, 30);
+      const extra = ranked.slice(30).filter((r) => r.p.id in squad);
       const head = `<th class="num">#</th><th>Player</th>` + cols.map(([k, l, t]) =>
         `<th class="num sort${k === st.key ? " on" : ""}" data-pos="${pos}" data-key="${k}" title="${esc(t)}"${k === st.key ? ` aria-sort="${st.dir > 0 ? "ascending" : "descending"}"` : ""}>${l}</th>`).join("");
-      const body = list.map((r, i) => `<tr><td class="num muted">${i + 1}</td><td><span class="pname">${esc(r.p.name)}</span> <span class="tag">${esc(teams[r.p.team].short)}</span></td>` +
+      const body = [...list, ...extra].map((r, i) => `<tr class="${r.p.id in squad ? "mine" : ""}${i === list.length ? " gap" : ""}"><td class="num muted">${r.rank}</td><td><span class="pname">${esc(r.p.name)}</span> <span class="tag">${esc(teams[r.p.team].short)}</span>${pill(r.p.id)}</td>` +
         cols.map(([k, , , d]) => {
           const v = r.v[k];
           const txt = k === "price" ? v.toFixed(1) : k === "sel" ? v.toFixed(1) : k === "dprice" ? (v > 0 ? "+" : "") + v.toFixed(1) : Number(v).toFixed(d);
