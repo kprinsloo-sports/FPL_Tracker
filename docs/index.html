@@ -25,6 +25,9 @@
   --up: #006300; --down: #d03b3b;
   --off: #e1e0d9;
   --mine: #e6f0fc;
+  /* Red (low) to green (high) scale for points-per-gameweek tables */
+  --rg-0: #c62f2f; --rg-1: #e0615a; --rg-2: #ef978b; --rg-3: #f6cbc2;
+  --rg-4: #d3ebc9; --rg-5: #9dd18f; --rg-6: #4fa94a; --rg-7: #1f7a2a;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -39,6 +42,8 @@
     --up: #0ca30c; --down: #e66767;
     --off: #383835;
     --mine: #15253b;
+    --rg-0: #9e2626; --rg-1: #7f302c; --rg-2: #5a2c28; --rg-3: #3a2624;
+    --rg-4: #233626; --rg-5: #2c5a30; --rg-6: #3a8a3c; --rg-7: #5fbf5c;
   }
 }
 :root[data-theme="dark"] {
@@ -53,6 +58,8 @@
   --up: #0ca30c; --down: #e66767;
   --off: #383835;
   --mine: #15253b;
+  --rg-0: #9e2626; --rg-1: #7f302c; --rg-2: #5a2c28; --rg-3: #3a2624;
+  --rg-4: #233626; --rg-5: #2c5a30; --rg-6: #3a8a3c; --rg-7: #5fbf5c;
 }
 * { box-sizing: border-box; }
 body {
@@ -206,7 +213,7 @@ footer a { color: var(--ink-2); }
         </div>
         <div class="scroll"><table class="squad" id="squad"></table></div>
         <div class="keyrow">
-          <span><span class="sw" style="background:var(--seq-4)"></span>In your XI (darker = more points)</span>
+          <span><span class="sw" style="background:linear-gradient(90deg,var(--rg-0),var(--rg-3),var(--rg-4),var(--rg-7));width:48px"></span>In your XI: red 0 pts → green 11+ pts</span>
           <span><span class="sw" style="box-shadow:inset 0 0 0 1px var(--axis)"></span>On your bench</span>
           <span><span class="sw" style="background:var(--off)"></span>Not in your team</span>
           <span><b>C</b> captain · <b>TC</b> triple captain</span>
@@ -337,6 +344,8 @@ footer a { color: var(--ink-2); }
   const storedTheme = (() => { try { return localStorage.getItem("fpl-theme"); } catch { return null; } })();
   if (storedTheme) document.documentElement.dataset.theme = storedTheme;
   const isDark = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
+  // Text colour that stays readable on each step of the red-green scale.
+  const rgInk = (s) => (isDark() ? (s === 7 ? "#0b0b0b" : "var(--ink)") : (s <= 1 || s >= 6 ? "#ffffff" : "#0b0b0b"));
   const syncThemeLabel = () => { themeBtn.textContent = isDark() ? "Light mode" : "Dark mode"; };
   syncThemeLabel();
   themeBtn.onclick = () => {
@@ -706,9 +715,8 @@ footer a { color: var(--ink-2); }
       ids = [...current, ...[...past].sort((a, b) => (byId[b]?.total || 0) - (byId[a]?.total || 0))];
     }
     const forYou = (id) => gws.reduce((t, gw, gi) => t + (picks[gw]?.[id] ? byId[id].pts[gi] * picks[gw][id].mult : 0), 0);
-    const all = ids.flatMap((id) => (byId[id] ? byId[id].pts : [])), hi = Math.max(4, ...all);
-    const step = (v) => Math.max(1, Math.min(7, Math.ceil((v / hi) * 7)));
-    const inkFor = (s) => (isDark() ? (s >= 6 ? "#0b0b0b" : "var(--ink)") : (s >= 4 ? "#ffffff" : "var(--ink)"));
+    // Fixed FPL-points bands: blank or negative is red, a 2-point appearance amber, 6+ green.
+    const step = (v) => (v <= 0 ? 0 : v === 1 ? 1 : v === 2 ? 2 : v === 3 ? 3 : v <= 5 ? 4 : v <= 7 ? 5 : v <= 10 ? 6 : 7);
     const rows = ids.filter((id) => byId[id]).map((id, i) => {
       const p = byId[id], inSquad = current.includes(id);
       const cells = gws.map((gw, gi) => {
@@ -718,7 +726,7 @@ footer a { color: var(--ink-2); }
         if (!pick.mult) return `<td class="gw bench" data-tip="${base}<br>On your bench">${v}</td>`;
         const s = step(v), tag = pick.mult === 3 ? "TC" : pick.mult === 2 ? "C" : "";
         const role = pick.mult > 1 ? `${tag === "TC" ? "Triple captain" : "Captain"} (×${pick.mult}): <b>${v * pick.mult} pts</b> for you` : "In your XI";
-        return `<td class="gw" data-tip="${base}<br>${role}" style="background:var(--seq-${s});color:${inkFor(s)}">${v}${tag ? `<sup>${tag}</sup>` : ""}</td>`;
+        return `<td class="gw" data-tip="${base}<br>${role}" style="background:var(--rg-${s});color:${rgInk(s)}">${v}${tag ? `<sup>${tag}</sup>` : ""}</td>`;
       }).join("");
       const gap = squadMode === "all" && i === current.length ? ' class="gap"' : "";
       return `<tr${gap}><td><span class="pname">${esc(p.name)}</span> <span class="tag">${esc(teams[p.team].short)} ${p.pos}</span>${inSquad ? "" : ' <span class="tag">(sold)</span>'}</td>
@@ -915,14 +923,13 @@ footer a { color: var(--ink-2); }
     }).sort((a, b) => sum(b.v) - sum(a.v));
     const all = rows.flatMap((r) => r.v), lo = Math.min(...all), hi = Math.max(...all);
     const step = (v) => (hi === lo ? 4 : Math.min(7, Math.floor(((v - lo) / (hi - lo)) * 8)));
-    const inkFor = (s) => (isDark() ? (s >= 6 ? "#0b0b0b" : "var(--ink)") : (s >= 4 ? "#ffffff" : "var(--ink)"));
     $("#heat").innerHTML =
       `<thead><tr><th></th>${D.gws.map((g) => `<th>${g}</th>`).join("")}<th class="num">Total</th></tr></thead><tbody>` +
       rows.map(({ t, v }) => `<tr><td class="team">${esc(t.short)}</td>${v.map((x, gi) => {
         const s = step(x);
-        return `<td class="cell" data-tip="${esc(t.name)} · GW${D.gws[gi]}: <b>${x} pts</b>" style="background:var(--seq-${s});color:${inkFor(s)}">${x}</td>`;
+        return `<td class="cell" data-tip="${esc(t.name)} · GW${D.gws[gi]}: <b>${x} pts</b>" style="background:var(--rg-${s});color:${rgInk(s)}">${x}</td>`;
       }).join("")}<td class="num">${sum(v)}</td></tr>`).join("") + "</tbody>";
-    $("#heatLegend").innerHTML = `${lo}` + [0, 1, 2, 3, 4, 5, 6, 7].map((s) => `<span class="sw" style="background:var(--seq-${s})"></span>`).join("") + `${hi}`;
+    $("#heatLegend").innerHTML = `${lo}` + [0, 1, 2, 3, 4, 5, 6, 7].map((s) => `<span class="sw" style="background:var(--rg-${s})"></span>`).join("") + `${hi}`;
   }
 
   // shared HTML tooltip for heatmap cells and sparklines
