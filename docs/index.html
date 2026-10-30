@@ -163,6 +163,13 @@ footer.method h3 { font-size: 13px; color: var(--ink-2); margin: 0 0 6px; }
 footer.method p, footer.method ul { margin: 0 0 8px; }
 footer.method ul { padding-left: 18px; }
 footer.method b { color: var(--ink-2); font-weight: 600; }
+.other { margin-top: 24px; }
+.other h2 { font-size: 15px; margin: 0 0 10px; }
+.other .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.other a { display: block; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.other a:hover, .other a:focus-visible { border-color: var(--ink-2); }
+.other a b { display: block; font-size: 14px; margin-bottom: 2px; }
+.other a span { color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -349,6 +356,14 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
   </section>
 
   </div>
+
+  <section class="other" aria-labelledby="otherTitle">
+    <h2 id="otherTitle">My Other Work</h2>
+    <div class="links">
+      <a href="https://kprinsloo-sports.github.io/f1-points-tracker/" target="_blank" rel="noopener"><b>F1 Points Tracker ↗</b><span>Formula 1 points dashboard</span></a>
+      <a href="https://kprinsloo-sports.github.io/nba-summary/" target="_blank" rel="noopener"><b>NBA Summary ↗</b><span>NBA season summary dashboard</span></a>
+    </div>
+  </section>
 
   <footer>
     Data from the public <a href="https://fantasy.premierleague.com/">Fantasy Premier League</a> API, refreshed weekly by GitHub Actions.
