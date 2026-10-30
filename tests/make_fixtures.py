@@ -80,7 +80,8 @@ def main() -> None:
         for gw in range(1, PLAYED + 1):
             cost += rnd.choice([-1, 0, 0, 0, 1, 1])
             if rnd.random() < 0.85:
-                history.append({"round": gw, "value": cost, "kickoff_time": f"2026-08-{gw + 10:02d}T15:00:00Z"})
+                history.append({"round": gw, "value": cost, "selected": int(skill * 4_000_000 * (0.6 + 0.4 * gw / PLAYED)),
+                                "kickoff_time": f"2026-08-{gw + 10:02d}T15:00:00Z"})
         el["now_cost"] = cost
         d = OUT / "element-summary" / str(el["id"])
         d.mkdir(parents=True, exist_ok=True)

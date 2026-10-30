@@ -302,6 +302,17 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     <div class="chart tall"><canvas id="priceChart" aria-label="Player price by gameweek"></canvas></div>
   </section>
 
+  <section class="card" style="margin-bottom:12px" id="ownCard">
+    <div class="head">
+      <div><h2>Percentage owned by managers</h2><p class="desc">Share of all FPL managers who own each player, by gameweek. Starts with the most-owned players. Search to add anyone else (up to 8)</p></div>
+      <div class="adder">
+        <input type="search" id="ownInput" list="playerList" placeholder="Search for a player…" aria-label="Add a player to the ownership chart">
+      </div>
+    </div>
+    <div class="chips" id="ownChips"></div>
+    <div class="chart tall"><canvas id="ownChart" aria-label="Percentage owned by managers by gameweek"></canvas></div>
+  </section>
+
   <div class="grid2">
     <section class="card">
       <div class="head">
@@ -355,7 +366,7 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
   const sum = (a) => a.reduce((x, y) => x + y, 0);
   const SLOTS = 8;
 
-  const state = { pos: "", team: "", q: "", sort: "total", dir: -1, limit: 25, mode: "weekly", gw: null, compare: [], price: [] };
+  const state = { pos: "", team: "", q: "", sort: "total", dir: -1, limit: 25, mode: "weekly", gw: null, compare: [], price: [], own: [] };
   let D, teams, byId, charts = {};
 
   // ---- theme toggle (stored per viewer, page works without it) ----
@@ -396,6 +407,9 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     const hasPrices = D.players.some((p) => p.prices);
     $("#priceCard").hidden = !hasPrices;
     if (hasPrices) state.price = D.players.slice().sort((a, b) => b.sel - a.sel).slice(0, 5).map((p, i) => ({ id: p.id, slot: i }));
+    const hasOwned = D.players.some((p) => p.owned);
+    $("#ownCard").hidden = !hasOwned;
+    if (hasOwned) state.own = D.players.slice().sort((a, b) => b.sel - a.sel).slice(0, 5).map((p, i) => ({ id: p.id, slot: i }));
 
     const meta = D.gw_meta[D.gw_meta.length - 1];
     $("#subtitle").textContent = `Season ${D.season} · Gameweeks 1–${latest}${meta.finished ? "" : " (gameweek " + latest + " in progress)"}`;
@@ -429,6 +443,7 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     };
     $("#addInput").onchange = onPick(addCompare);
     $("#priceInput").onchange = onPick((id) => { addTo(state.price, id); renderPrice(); });
+    $("#ownInput").onchange = onPick((id) => { addTo(state.own, id); renderOwn(); });
     renderAll();
   }
 
@@ -829,7 +844,7 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     });
   }
 
-  function renderAll() { renderTeam(); renderTop4(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderPos(); renderHeat(); renderTable(); }
+  function renderAll() { renderTeam(); renderTop4(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderOwn(); renderPos(); renderHeat(); renderTable(); }
 
   function renderTiles() {
     const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];
@@ -925,6 +940,33 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
           callbacks: { label: (c) => ` ${c.dataset.label}: £${c.parsed.y.toFixed(1)}m` } } },
         scales: { ...base().scales, y: { ...base().scales.y, beginAtZero: false, grace: "5%",
           ticks: { color: css("--muted"), callback: (v) => `£${(+v).toFixed(1)}m` } } },
+      }),
+    });
+  }
+
+  function renderOwn() {
+    if ($("#ownCard").hidden) return;
+    const change = (p) => {
+      const known = p.owned.filter((v) => v != null);
+      const d = known.length ? +(known[known.length - 1] - known[0]).toFixed(1) : 0;
+      if (!d) return ` <span class="tag">±0.0%</span>`;
+      return ` <span class="tag" style="color:${d > 0 ? "var(--up)" : "var(--down)"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(1)}%</span>`;
+    };
+    renderChips($("#ownChips"), state.own, renderOwn, change);
+    draw("own", $("#ownChart"), {
+      type: "line",
+      data: {
+        labels: D.gws.map((g) => "GW" + g),
+        datasets: state.own.map((c) => {
+          const p = byId[c.id];
+          return line(p.name, p.owned, css(`--s${c.slot + 1}`), { pointRadius: D.gws.length > 20 ? 0 : 3, pointBorderColor: css("--surface"), pointBorderWidth: 2 });
+        }),
+      },
+      options: base({
+        plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, itemSort: (a, b) => b.parsed.y - a.parsed.y,
+          callbacks: { label: (c) => ` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } } },
+        scales: { ...base().scales, y: { ...base().scales.y, beginAtZero: true, grace: "5%",
+          ticks: { color: css("--muted"), callback: (v) => `${+v}%` } } },
       }),
     });
   }

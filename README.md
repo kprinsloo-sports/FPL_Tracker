@@ -11,6 +11,7 @@ Fantasy Premier League points for every player, gameweek by gameweek, with a das
 | `scripts/fetch_fpl.py` | Pulls player, team and per-gameweek stats from the public FPL API (standard library only) |
 | `data/<season>/gw/gwNN.json` | Every player's stats for one gameweek: points, minutes, goals, assists, clean sheets, bonus, BPS and more |
 | `data/<season>/prices.json` | Each player's price per gameweek (in £0.1m), backfilled from their match history then recorded on every refresh |
+| `data/<season>/ownership.json` | Each player's % owned by managers per gameweek; earlier weeks are backfilled from match history against today's manager total, then recorded exactly on every refresh |
 | `data/<season>/points_by_gameweek.csv` | One row per player, one column per gameweek. Opens straight in Excel |
 | `scripts/fetch_managers.py` | Pulls rank, points, team value and squad picks per gameweek for the manager IDs in `managers.json` |
 | `managers.json` | The FPL manager (team) IDs shown on the rank chart |
@@ -25,6 +26,7 @@ Fantasy Premier League points for every player, gameweek by gameweek, with a das
 - Top 10 players in any gameweek, filtered by position and team
 - Compare up to 8 players week by week, weekly or cumulative
 - Player price by gameweek: starts with the 5 most-owned players, search to add anyone
+- Percentage owned by managers per gameweek: same layout, starts with the 5 most-owned players, search to add anyone
 - Average points per position per gameweek
 - Heatmap of each club's total points per gameweek, red (low) to green (high)
 - Sortable, searchable player table with form and a weekly points sparkline
