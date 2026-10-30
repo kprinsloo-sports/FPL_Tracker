@@ -10,9 +10,9 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 1,David Raya Martín,ARS,GKP,6.2,49,6,6,3,14,1,3,9,7
 229,James Tarkowski,EVE,DEF,6.2,48,6,12,3,8,14,3,0,2
 165,João Pedro Junqueira de Jesus,CHE,FWD,7.8,47,11,9,1,12,0,12,2,0
-8,Riccardo Calafiori,ARS,DEF,6.0,45,9,11,2,6,1,9,6,1
+8,Riccardo Calafiori,ARS,DEF,5.9,45,9,11,2,6,1,9,6,1
 399,Rayan Cherki,MCI,MID,8.0,44,8,14,3,1,8,10,0,0
-79,Francisco Evanilson de Lima Barbosa,BOU,FWD,6.2,43,4,5,2,5,2,7,12,6
+79,Francisco Evanilson de Lima Barbosa,BOU,FWD,6.3,43,4,5,2,5,2,7,12,6
 138,Charalampos Kostoulas,BHA,FWD,5.8,43,1,5,2,10,10,1,12,2
 286,Mohamed Belloumi,HUL,MID,5.2,43,3,6,5,13,4,6,2,4
 334,Tarik Muharemović,LEE,DEF,5.1,43,6,4,4,7,6,2,5,9
@@ -66,7 +66,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 335,Anton Stach,LEE,MID,6.0,32,13,4,2,3,5,2,2,1
 480,Morgan Gibbs-White,NFO,MID,7.9,32,2,13,3,8,2,2,0,2
 496,Antonín Kinský,TOT,GKP,4.4,32,2,1,6,7,2,3,2,9
-53,Johan Manzambi,AVL,MID,6.0,31,0,0,0,1,13,5,11,1
+53,Johan Manzambi,AVL,MID,6.1,31,0,0,0,1,13,5,11,1
 230,Jarrad Branthwaite,EVE,DEF,5.5,31,6,4,3,6,8,3,1,0
 316,Emersonn Correia da Silva,IPS,FWD,5.5,31,9,1,2,12,2,2,2,1
 366,Florian Wirtz,LIV,MID,7.2,31,2,4,3,3,6,2,5,6
@@ -88,7 +88,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 41,Emiliano Buendía Stati,AVL,MID,5.9,28,2,2,3,2,12,4,3,0
 47,Boubacar Kamara,AVL,MID,5.0,28,2,2,3,2,6,4,5,4
 88,Michael Kayode,BRE,DEF,4.6,28,13,2,1,1,6,0,1,4
-565,Mamadou Sangaré,BRE,MID,5.5,28,14,4,0,4,0,1,1,4
+565,Mamadou Sangaré,BRE,MID,5.4,28,14,4,0,4,0,1,1,4
 183,Jack Rudoni,COV,MID,4.9,28,1,3,2,2,5,7,6,2
 233,Vitalii Mykolenko,EVE,DEF,4.6,28,6,4,1,11,5,0,1,0
 586,Nobel Mendy,HUL,DEF,4.1,28,15,1,8,1,0,3,0,0
@@ -117,7 +117,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 331,Gabriel Gudmundsson,LEE,DEF,4.5,25,0,0,2,6,6,4,1,6
 338,Ethan Ampadu,LEE,MID,5.3,25,5,2,2,7,5,1,1,2
 390,Rúben dos Santos Gato Alves Dias,MCI,DEF,5.5,25,2,2,6,6,1,6,1,1
-26,Kai Havertz,ARS,FWD,7.5,24,6,2,8,1,2,2,2,1
+26,Kai Havertz,ARS,FWD,7.4,24,6,2,8,1,2,2,2,1
 200,Maxence Lacroix,CHE,DEF,5.9,24,6,1,2,1,3,2,6,3
 295,Oli McBurnie,HUL,FWD,5.5,24,5,1,2,4,1,1,2,8
 43,Youri Tielemans,MUN,MID,5.7,24,2,4,2,2,4,3,7,0
@@ -193,7 +193,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 412,Senne Lammens,MUN,GKP,4.8,17,1,2,2,2,4,2,3,1
 522,Archie Gray,TOT,MID,4.9,17,2,2,0,3,2,3,2,3
 553,Wilson Isidor,SUN,FWD,5.4,17,1,8,4,1,1,2,0,0
-557,Christos Tzolis,ARS,MID,6.2,16,6,0,5,3,2,0,0,0
+557,Christos Tzolis,ARS,MID,6.1,16,6,0,5,3,2,0,0,0
 64,Adam Smith,BOU,DEF,4.5,16,1,1,0,0,2,0,6,6
 575,Caleb Yirenkyi,COV,MID,4.8,16,1,3,1,1,3,4,0,3
 599,Sidiki Cherif,COV,FWD,5.0,16,0,0,0,1,0,12,1,2
@@ -372,7 +372,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 142,Reece James,CHE,DEF,5.2,3,0,1,1,1,0,0,0,0
 568,Valentín Barco,CHE,MID,5.4,3,0,1,0,0,2,0,0,0
 212,Will Hughes,CRY,MID,4.3,3,0,0,1,1,0,0,1,0
-577,Takehiro Tomiyasu,CRY,DEF,4.4,3,1,1,0,0,1,0,0,0
+577,Takehiro Tomiyasu,CRY,DEF,4.3,3,1,1,0,0,1,0,0,0
 633,Honest Ahanor,CRY,DEF,4.5,3,0,0,0,3,0,1,-1,0
 243,Carlos Alcaraz Durán,EVE,MID,4.8,3,1,0,0,0,0,1,0,1
 245,Tyler Dibling,EVE,MID,5.3,3,0,0,0,0,1,1,0,1
