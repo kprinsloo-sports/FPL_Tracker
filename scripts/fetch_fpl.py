@@ -6,7 +6,8 @@ Uses only the public FPL API and the Python standard library:
   event/{gw}/live/    every player's stats for one gameweek
   element-summary/{id}/  a player's match history, used once per player to
                          backfill their price and ownership at each gameweek
-  fixtures/           every fixture of the season, for predicted points
+  fixtures/           every fixture of the season, for predicted points and
+                      the league table
 
 Raw gameweek stats are cached per season under data/<season>/gw/ so old
 gameweeks are only downloaded once. The latest few gameweeks are always
@@ -314,6 +315,41 @@ def build_stats(bootstrap: dict, gameweeks: dict[int, dict], fixtures: list[dict
     }
 
 
+def build_standings(bootstrap: dict, fixtures: list[dict]) -> list[dict]:
+    """The Premier League table from finished fixtures, with each team's last 5 results and next match."""
+    table = {
+        t["id"]: {"id": t["id"], "p": 0, "w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "form": [], "next": None}
+        for t in bootstrap["teams"]
+    }
+    by_kickoff = sorted(fixtures, key=lambda f: (f.get("kickoff_time") or "9999", f.get("id", 0)))
+    for fx in by_kickoff:
+        home, away = table.get(fx["team_h"]), table.get(fx["team_a"])
+        if not home or not away:
+            continue
+        hs, as_ = fx.get("team_h_score"), fx.get("team_a_score")
+        if fx.get("finished") and hs is not None and as_ is not None:
+            for row, gf, ga in ((home, hs, as_), (away, as_, hs)):
+                result = "W" if gf > ga else "D" if gf == ga else "L"
+                row["p"] += 1
+                row["gf"] += gf
+                row["ga"] += ga
+                row[result.lower()] += 1
+                row["form"].append(result)
+        elif not fx.get("finished") and fx.get("event"):
+            for row, opp, venue in ((home, fx["team_a"], "H"), (away, fx["team_h"], "A")):
+                if row["next"] is None:
+                    row["next"] = {"opp": opp, "venue": venue, "gw": fx["event"]}
+    rows = []
+    for row in table.values():
+        row["gd"] = row["gf"] - row["ga"]
+        row["pts"] = 3 * row["w"] + row["d"]
+        row["form"] = row["form"][-5:]
+        rows.append(row)
+    names = {t["id"]: t["name"] for t in bootstrap["teams"]}
+    rows.sort(key=lambda r: (-r["pts"], -r["gd"], -r["gf"], names[r["id"]]))
+    return rows
+
+
 def write_csv(path: Path, data: dict) -> None:
     teams = {t["id"]: t["short"] for t in data["teams"]}
     with path.open("w", newline="") as fh:
@@ -335,10 +371,11 @@ def main() -> int:
 
     prices, owned = load_history(season_dir, bootstrap, sorted(gameweeks))
     data = build(bootstrap, gameweeks, prices, owned)
+    fixtures = get_json("fixtures/")
+    data["standings"] = build_standings(bootstrap, fixtures)
     write_csv(season_dir / "points_by_gameweek.csv", data)
     SITE_DATA.parent.mkdir(parents=True, exist_ok=True)
     SITE_DATA.write_text(json.dumps(data, separators=(",", ":")) + "\n")
-    fixtures = get_json("fixtures/")
     STATS_DATA.write_text(json.dumps(build_stats(bootstrap, gameweeks, fixtures), separators=(",", ":")) + "\n")
     print(f"Season {season}: {len(data['players'])} players, gameweeks {data['gws'][0]}-{data['gws'][-1]}")
     return 0

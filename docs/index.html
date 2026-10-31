@@ -156,6 +156,25 @@ tbody tr.row:hover { background: var(--wash); }
 .legend-seq span.sw { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
 #tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none; }
 .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+.league td.pos { width: 28px; color: var(--muted); }
+.league tr td.pos { box-shadow: inset 4px 0 0 var(--zone, transparent); }
+.league tr.ucl { --zone: var(--s1); }
+.league tr.uel { --zone: var(--s2); }
+.league tr.uecl { --zone: var(--s3); }
+.league tr.rel { --zone: var(--rg-0); }
+.league tr.cut td { border-bottom-color: var(--axis); }
+.league td.pts { font-weight: 700; }
+.form i { display: inline-block; width: 18px; height: 18px; line-height: 18px; border-radius: 4px; margin-left: 2px; text-align: center; font-style: normal; font-size: 11px; font-weight: 700; }
+.form i.W { background: var(--rg-6); color: #fff; }
+.form i.D { background: var(--off); color: var(--ink-2); }
+.form i.L { background: var(--rg-0); color: #fff; }
+.league .key { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 12px; margin-top: 10px; }
+.league .key span::before { content: ""; display: inline-block; width: 4px; height: 12px; margin-right: 6px; vertical-align: -2px; background: var(--zone); }
+.league .key .ucl { --zone: var(--s1); }
+.league .key .uel { --zone: var(--s2); }
+.league .key .uecl { --zone: var(--s3); }
+.league .key .rel { --zone: var(--rg-0); }
+@media (max-width: 480px) { .league .hide-sm { display: none; } }
 footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
 footer a { color: var(--ink-2); }
 footer.method { margin-top: 16px; line-height: 1.5; max-width: 900px; }
@@ -189,6 +208,7 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     <button type="button" role="tab" id="tabBtn-overview" data-tab="overview" aria-selected="true">Overview</button>
     <button type="button" role="tab" id="tabBtn-team" data-tab="team" aria-selected="false">My team</button>
     <button type="button" role="tab" id="tabBtn-top" data-tab="top" aria-selected="false">Top performers</button>
+    <button type="button" role="tab" id="tabBtn-standings" data-tab="standings" aria-selected="false">Standings</button>
   </nav>
 
   <div id="tab-team" role="tabpanel" hidden>
@@ -258,6 +278,16 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
       </ul>
       <p><b>Team strength</b> is each team's xG for and against per match this season, blended with 3 league-average matches so early weeks don't swing too far. Home teams get a 10% boost in both. <b>Per-90 rates</b> are blended with the position average over 90 minutes, so a player with a single cameo isn't projected like a star. Penalties, own goals and set-piece duties aren't modelled separately (they're inside xG). Predictions refresh every Tuesday with the data; the code is in <code>scripts/predict.py</code>.</p>
     </footer>
+  </div>
+
+  <div id="tab-standings" role="tabpanel" hidden>
+    <div class="teambar"><h2>Premier League table</h2></div>
+    <p class="note" id="leagueNote"></p>
+    <section class="card league">
+      <div class="scroll"><table id="league"></table></div>
+      <div class="key"><span class="ucl">Champions League (1–4)</span><span class="uel">Europa League (5)</span><span class="uecl">Conference League qualifying (6)</span><span class="rel">Relegation (18–20)</span></div>
+      <p class="desc" style="margin-top:8px">Standard places. Cup winners and extra European performance spots can push these further down the table at the end of the season.</p>
+    </section>
   </div>
 
   <div id="tab-overview" role="tabpanel">
@@ -529,10 +559,12 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     $("#tab-overview").hidden = name !== "overview";
     $("#tab-team").hidden = name !== "team";
     $("#tab-top").hidden = name !== "top";
-    history.replaceState(null, "", name === "team" && rankId ? `#manager=${rankId}` : name === "top" ? "#top" : location.pathname + location.search);
+    $("#tab-standings").hidden = name !== "standings";
+    history.replaceState(null, "", name === "team" && rankId ? `#manager=${rankId}` : name === "top" ? "#top" : name === "standings" ? "#standings" : location.pathname + location.search);
     try { localStorage.setItem("fpl-tab", name); } catch {}
     if (name === "team") renderTeam();
     if (name === "top") renderTop4();
+    if (name === "standings") renderLeague();
   }
   document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => setTab(b.dataset.tab));
 
@@ -692,7 +724,7 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
       let saved = null, savedTab = null;
       try { saved = +localStorage.getItem("fpl-manager"); savedTab = localStorage.getItem("fpl-tab"); } catch {}
       showManager(fromHash || saved || (M.managers[0] && M.managers[0].id) || null);
-      setTab(fromHash ? "team" : location.hash === "#top" ? "top" : ["team", "top"].includes(savedTab) ? savedTab : "overview");
+      setTab(fromHash ? "team" : location.hash === "#top" ? "top" : location.hash === "#standings" ? "standings" : ["team", "top", "standings"].includes(savedTab) ? savedTab : "overview");
       addEventListener("hashchange", () => {
         const id = +(location.hash.match(/manager=(\d+)/) || [])[1];
         if (id && id !== rankId) { showManager(id); setTab("team"); }
@@ -859,7 +891,30 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     });
   }
 
-  function renderAll() { renderTeam(); renderTop4(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderOwn(); renderPos(); renderHeat(); renderTable(); }
+  // ---- Standings (D.standings, built from FPL fixture results) ----
+  function renderLeague() {
+    if (!D) return;
+    const rows = D.standings || [];
+    if (!rows.length) { $("#leagueNote").textContent = "The table will appear after the next data refresh."; $("#league").innerHTML = ""; return; }
+    const played = Math.max(...rows.map((r) => r.p));
+    $("#leagueNote").textContent = `After ${played} matches, from FPL results (updated ${new Date(D.updated).toLocaleDateString(undefined, { day: "numeric", month: "short" })}). Ties are split on goal difference, then goals scored.`;
+    const head = `<thead><tr><th class="num">#</th><th>Team</th><th class="num" title="Played">P</th><th class="num" title="Won">W</th><th class="num" title="Drawn">D</th><th class="num" title="Lost">L</th>
+      <th class="num hide-sm" title="Goals for">GF</th><th class="num hide-sm" title="Goals against">GA</th><th class="num" title="Goal difference">GD</th><th class="num" title="Points">Pts</th>
+      <th class="hide-sm" title="Last 5 results, oldest first">Form</th><th class="hide-sm" title="Next match">Next</th></tr></thead>`;
+    const body = rows.map((r, i) => {
+      const t = teams[r.id];
+      const form = r.form.map((x) => `<i class="${x}" title="${{ W: "Won", D: "Drew", L: "Lost" }[x]}">${x}</i>`).join("");
+      const next = r.next ? `${esc(teams[r.next.opp].short)} (${r.next.venue}) <span class="tag">GW${r.next.gw}</span>` : "";
+      const zone = i < 4 ? "ucl" : i === 4 ? "uel" : i === 5 ? "uecl" : i >= rows.length - 3 ? "rel" : "";
+      const cut = [3, 4, 5, rows.length - 4].includes(i) ? " cut" : "";
+      return `<tr class="${zone}${cut}"><td class="num pos">${i + 1}</td><td><span class="pname">${esc(t.name)}</span></td><td class="num">${r.p}</td><td class="num">${r.w}</td><td class="num">${r.d}</td><td class="num">${r.l}</td>
+        <td class="num hide-sm">${r.gf}</td><td class="num hide-sm">${r.ga}</td><td class="num">${r.gd > 0 ? "+" : ""}${r.gd}</td><td class="num pts">${r.pts}</td>
+        <td class="form hide-sm">${form}</td><td class="hide-sm">${next}</td></tr>`;
+    }).join("");
+    $("#league").innerHTML = head + `<tbody>${body}</tbody>`;
+  }
+
+  function renderAll() { renderLeague(); renderTeam(); renderTop4(); renderTiles(); renderMgr(); renderTop(); renderCompare(); renderPrice(); renderOwn(); renderPos(); renderHeat(); renderTable(); }
 
   function renderTiles() {
     const gi = D.gws.length - 1, gw = D.gws[gi], meta = D.gw_meta[gi], prev = D.gw_meta[gi - 1];

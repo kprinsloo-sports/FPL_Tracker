@@ -103,7 +103,11 @@ def main() -> None:
         if gw == PLAYED + 2:
             pairs = [pr for pr in pairs if 1 not in pr and 2 not in pr] + [(3, 4)]
         for h, a in pairs:
-            fixtures.append({"id": len(fixtures) + 1, "event": gw, "team_h": h if gw % 2 else a, "team_a": a if gw % 2 else h, "finished": gw <= PLAYED})
+            fx = {"id": len(fixtures) + 1, "event": gw, "team_h": h if gw % 2 else a, "team_a": a if gw % 2 else h, "finished": gw <= PLAYED,
+                  "kickoff_time": f"2026-{8 + gw // 5:02d}-{(gw % 5) * 5 + 1:02d}T15:00:00Z", "team_h_score": None, "team_a_score": None}
+            if fx["finished"]:
+                fx["team_h_score"], fx["team_a_score"] = rnd.choice([0, 1, 1, 2, 2, 3]), rnd.choice([0, 0, 1, 1, 2, 3])
+            fixtures.append(fx)
         ids = [ids[0]] + [ids[-1]] + ids[1:-1]
     (OUT / "fixtures").mkdir(parents=True, exist_ok=True)
     (OUT / "fixtures" / "index.html").write_text(json.dumps(fixtures))
