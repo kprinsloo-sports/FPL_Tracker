@@ -2,8 +2,8 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 411,Erling Haaland,MCI,FWD,15.8,66,2,13,9,9,6,6,13,8
 115,Maxim De Cuyper,BHA,DEF,5.3,60,17,0,4,11,6,15,6,1
 124,Pascal Groß,BHA,MID,6.2,58,2,13,1,17,14,6,5,0
-4,Gabriel dos Santos Magalhães,ARS,DEF,7.9,52,5,8,2,9,1,2,8,17
-68,Marcus Tavernier,BOU,MID,6.4,52,10,1,10,8,2,1,10,10
+4,Gabriel dos Santos Magalhães,ARS,DEF,8.0,52,5,8,2,9,1,2,8,17
+68,Marcus Tavernier,BOU,MID,6.5,52,10,1,10,8,2,1,10,10
 504,Luka Vušković,BHA,DEF,5.2,52,6,0,12,6,8,8,11,1
 379,Alexander Isak,LIV,FWD,9.1,51,2,8,13,2,8,0,9,9
 330,Jayden Bogle,LEE,DEF,4.8,50,6,2,14,15,5,1,2,5
@@ -22,7 +22,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 572,Konstantinos Tzolakis,HUL,GKP,4.7,42,10,10,6,2,6,2,3,3
 385,James Trafford,LEE,GKP,5.0,42,9,3,3,3,10,2,2,10
 391,Joško Gvardiol,MCI,DEF,5.7,42,9,5,8,11,4,4,0,1
-40,Morgan Rogers,CHE,MID,8.0,41,8,5,6,8,2,9,2,1
+40,Morgan Rogers,CHE,MID,8.1,41,8,5,6,8,2,9,2,1
 109,Bart Verbruggen,BHA,GKP,4.6,40,6,0,3,8,6,9,6,2
 332,James Justin,LEE,DEF,4.5,40,10,2,4,2,8,6,2,6
 449,Lewis Hall,NEW,DEF,5.3,40,3,11,4,0,13,0,4,5
@@ -48,7 +48,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 346,Dominic Calvert-Lewin,LEE,FWD,6.1,35,1,8,1,10,2,2,9,2
 367,Cody Gakpo,LIV,MID,7.1,35,12,5,11,1,3,0,0,3
 45,John McGinn,AVL,MID,5.4,34,1,1,3,6,6,10,1,6
-166,Nicolas Jackson,AVL,FWD,6.8,34,0,2,2,0,6,9,2,13
+166,Nicolas Jackson,AVL,FWD,6.9,34,0,2,2,0,6,9,2,13
 250,Bernd Leno,FUL,GKP,4.5,34,2,3,1,9,3,2,6,8
 268,Josh King,FUL,MID,5.6,34,7,2,10,3,2,2,2,6
 279,Semi Ajayi,HUL,DEF,4.2,34,14,6,5,1,1,1,2,4
@@ -155,7 +155,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 400,Jérémy Doku,MCI,MID,7.5,21,0,0,0,0,1,12,6,2
 551,Nilson Angulo,SUN,MID,5.0,21,5,3,2,2,4,2,0,3
 73,Tyler Adams,BOU,MID,5.0,20,1,1,4,2,4,1,3,4
-28,Emiliano Martínez Romero,CHE,GKP,5.0,20,0,2,3,2,2,3,8,0
+28,Emiliano Martínez Romero,CHE,GKP,4.9,20,0,2,3,2,2,3,8,0
 239,James Garner,EVE,MID,6.0,20,1,1,2,4,3,4,2,3
 569,Gonzalo García,FUL,FWD,6.0,20,6,2,2,2,2,2,2,2
 290,Regan Slater,HUL,MID,4.5,20,6,2,3,2,2,2,1,2
@@ -201,13 +201,13 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 418,Harry Maguire,MUN,DEF,4.7,16,1,4,2,1,2,2,4,0
 445,Malick Thiaw,NEW,DEF,5.0,16,3,6,-1,2,4,0,1,1
 525,Mateus Fernandes,TOT,MID,5.6,16,1,2,0,3,1,1,1,7
-102,Yehor Yarmoliuk,BRE,MID,4.8,15,1,1,0,4,3,8,-2,0
+102,Yehor Yarmoliuk,BRE,MID,4.7,15,1,1,0,4,3,8,-2,0
 151,Josh Acheampong,CHE,DEF,4.5,15,3,1,1,0,0,2,7,1
 175,Milan van Ewijk,COV,DEF,3.9,15,1,2,3,0,0,6,1,2
 576,Elliot Stroud,HUL,MID,4.9,15,3,0,3,1,0,4,0,4
 267,Saša Lukić,IPS,MID,4.9,15,5,1,2,1,2,4,0,0
 459,Lewis Miley,NEW,MID,5.5,15,3,3,2,0,4,1,2,0
-167,Liam Delap,NFO,FWD,5.5,15,0,1,2,5,1,2,2,2
+167,Liam Delap,NFO,FWD,5.4,15,0,1,2,5,1,2,2,2
 201,Daniel Muñoz Mejía,NFO,DEF,5.3,15,0,0,1,2,2,1,2,7
 474,Jair Paula da Cunha Filho,NFO,DEF,4.4,15,1,1,8,0,1,0,2,2
 536,Reinildo Mandava,SUN,DEF,4.4,15,1,6,2,-2,0,2,1,5
@@ -274,7 +274,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 499,Pedro Porro Sauceda,TOT,DEF,5.3,10,0,1,7,0,1,0,0,1
 17,Mikel Merino Zazón,ARS,MID,5.7,9,1,1,0,1,1,1,1,3
 25,Viktor Gyökeres,ARS,FWD,7.0,9,0,0,1,0,1,1,1,5
-51,George Hemmings,AVL,MID,4.5,9,2,2,3,1,1,0,0,0
+51,George Hemmings,AVL,MID,4.4,9,2,2,3,1,1,0,0,0
 585,Lucas Herrington,HUL,DEF,4.0,9,1,1,1,1,1,0,0,4
 300,Christian Walton,IPS,GKP,4.4,9,0,0,0,0,2,2,2,3
 260,Harry Wilson,LEE,MID,6.2,9,3,1,0,1,0,1,0,3
@@ -306,7 +306,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 381,Lewis Koumas,LIV,MID,5.0,7,1,0,1,0,1,2,1,1
 406,Mateo Kovačić,MCI,MID,5.3,7,1,1,0,0,0,0,5,0
 131,Carlos Baleba,MUN,MID,4.9,7,0,0,0,0,0,3,2,2
-634,Matias Fernandez-Pardo,NEW,FWD,6.0,7,0,0,1,1,2,2,1,0
+634,Matias Fernandez-Pardo,NEW,FWD,5.9,7,0,0,1,1,2,2,1,0
 490,Chris Wood,NFO,FWD,5.7,7,1,0,1,1,1,1,1,1
 543,Habib Diarra,SUN,MID,5.3,7,1,4,0,0,0,0,1,1
 19,Martín Zubimendi Ibáñez,ARS,MID,5.2,6,1,1,1,1,1,0,0,1
@@ -378,7 +378,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 245,Tyler Dibling,EVE,MID,5.3,3,0,0,0,0,1,1,0,1
 253,Joachim Andersen,FUL,DEF,5.0,3,0,1,1,0,1,0,0,0
 255,Jorge Cuenca Barreno,FUL,DEF,4.4,3,3,0,0,0,0,0,0,0
-262,Emile Smith Rowe,FUL,MID,5.3,3,0,1,1,1,0,0,0,0
+262,Emile Smith Rowe,FUL,MID,5.2,3,0,1,1,1,0,0,0,0
 323,Kasey McAteer,IPS,MID,4.4,3,1,1,1,0,0,0,0,0
 343,Daniel James,LEE,MID,4.9,3,0,1,0,1,1,0,0,0
 364,Kostas Tsimikas,LIV,DEF,4.9,3,0,1,0,1,0,0,0,1
@@ -491,7 +491,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 133,Tom Watson,BHA,MID,5.0,0,0,0,0,0,0,0,0,0
 134,Nehemiah Oriola,BHA,MID,4.4,0,0,0,0,0,0,0,0,0
 137,Stefanos Tzimas,BHA,FWD,5.4,0,0,0,0,0,0,0,0,0
-139,Evan Ferguson,BHA,FWD,5.0,0,0,0,0,0,0,0,0,0
+139,Evan Ferguson,BHA,FWD,4.9,0,0,0,0,0,0,0,0,0
 624,Amario Cozier-Duberry,BHA,MID,5.0,0,0,0,0,0,0,0,0,0
 652,Femi Azeez,BHA,MID,5.5,0,0,0,0,0,0,0,0,0
 658,Younes Ibrahim,BHA,MID,4.5,0,0,0,0,0,0,0,0,0
@@ -660,7 +660,7 @@ id,name,team,position,price,total,GW1,GW2,GW3,GW4,GW5,GW6,GW7,GW8
 518,Pape Matar Sarr,TOT,MID,4.9,0,0,0,0,0,0,0,0,0
 524,Callum Olusesi,TOT,MID,4.4,0,0,0,0,0,0,0,0,0
 528,Dane Scarlett,TOT,FWD,4.5,0,0,0,0,0,0,0,0,0
-601,Luca Williams-Barnett,TOT,MID,4.5,0,0,0,0,0,0,0,0,0
+601,Luca Williams-Barnett,TOT,MID,4.4,0,0,0,0,0,0,0,0,0
 530,Anthony Patterson,SUN,GKP,4.0,0,0,0,0,0,0,0,0,0
 531,Melker Ellborg,SUN,GKP,4.4,0,0,0,0,0,0,0,0,0
 537,Jenson Seelt,SUN,DEF,4.5,0,0,0,0,0,0,0,0,0
