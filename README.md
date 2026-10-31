@@ -47,6 +47,10 @@ contributions per 90 (shrunk towards the position average for small samples), mi
 FPL's injury flag, clean-sheet and goals-conceded odds, and each opponent's attack and defence strength (from team xG for and against, with
 a home boost). Blank gameweeks score 0 and double gameweeks add both fixtures.
 
+## Standings tab
+
+The Premier League table built from FPL's fixture results: played, won, drawn, lost, goals for and against, goal difference, points, the last 5 results and each team's next match. Places 1–4 (Champions League), 5 (Europa League), 6 (Conference League qualifying) and 18–20 (relegation) are marked; cup winners and extra European spots can move those lines at the end of the season. Open it directly at `…/FPL_Tracker/#standings`.
+
 ## My team tab
 
 The **My team** tab shows one FPL manager at a time:
