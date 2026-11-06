@@ -18,6 +18,7 @@
   --border: rgba(11,11,11,0.10);
   --wash: rgba(11,11,11,0.04);
   --accent: #2a78d6;
+  --link-bg: #1d5fb0; --link-bg-hover: #154a8c;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
   --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
   --seq-0: #f0efec; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec;
@@ -185,10 +186,11 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
 .other { margin-top: 24px; }
 .other h2 { font-size: 15px; margin: 0 0 10px; }
 .other .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.other a { display: block; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-.other a:hover, .other a:focus-visible { border-color: var(--ink-2); }
+.other a { display: block; text-decoration: none; color: #fff; background: var(--link-bg); border: 1px solid var(--link-bg); border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.18); transition: background .15s, transform .15s; }
+.other a:hover, .other a:focus-visible { background: var(--link-bg-hover); transform: translateY(-2px); }
+.other a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .other a b { display: block; font-size: 14px; margin-bottom: 2px; }
-.other a span { color: var(--muted); font-size: 13px; }
+.other a span { color: rgba(255,255,255,0.88); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -392,6 +394,7 @@ footer.method b { color: var(--ink-2); font-weight: 600; }
     <div class="links">
       <a href="https://kprinsloo-sports.github.io/f1-points-tracker/" target="_blank" rel="noopener"><b>F1 Points Tracker ↗</b><span>Formula 1 points dashboard</span></a>
       <a href="https://kprinsloo-sports.github.io/nba-summary/" target="_blank" rel="noopener"><b>NBA Summary ↗</b><span>NBA season summary dashboard</span></a>
+      <a href="https://kprinsloo-sports.github.io/rugby_player_minutes/" target="_blank" rel="noopener"><b>Rugby Player Minutes ↗</b><span>International rugby minutes by player and position</span></a>
     </div>
   </section>
 
